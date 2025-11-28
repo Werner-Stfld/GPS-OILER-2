@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+ 
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="utf-8">
+  <content-type charset="utf-8"></content-type>
+  <title>GPS-Oiler Settings</title>
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  <title></title>
+  <meta name="description" content="Edit the PGS-Oiler settings. Settings will be persisted in the device.">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+ 
+<body>
+  <!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"> -->
+
+  <!-- From CDN -->
+  <!-- <script src="https://cdn.jsdelivr.net/npm/vue@2.6.10/dist/vue.min.js"></script> -->
+  <!-- From ESP8266 -->
+  <script type="text/javascript" src="vendor/vue.min-3.5.24.js"></script>
+  <script type="module">
+    import wifiComponent from "./js/WiFiComponent.js"
+    import tankComponent from "./js/TankComponent.js"
+    import statesComponent from "./js/StatesComponent.js"
+    import rainComponent from "./js/RainComponent.js"
+    import pumpComponent from "./js/PumpComponent.js"
+    import emergencyComponent from "./js/EmergencyComponent.js"
+    import displayComponent from "./js/DisplayComponent.js"
+
+    const {createApp, ref, reactive, provide, watch, onMounted} = Vue;
+    //console.log("foo")
+    createApp({
+      setup() {
+        // declare reactive states
+        const wifi = ref({name: "", password: "", timeout: 10})
+        const tank = ref({"content": 100, "capacity": 150})
+        const states = ref({
+            "oiling": false,
+            "extraOiling": false,
+            "emergency": false,
+            "raining": true,
+            "wifi": true,
+            "washing": false
+        })
+        const rain = ref ({
+          "onThreshold": 150,
+          "offThreshold": 50,
+          "distanceMultiplier": 1.5,
+          "afterRainOilingPulses": 10
+        })
+        const pump = ref ({
+            "pulsesPerMl": 50,
+            "pulseOn": 10,
+            "pulseOff":5
+        })
+        const emergency = ref ({
+          "timeout": 2,
+          "speed": 60
+        })
+        const display = ref ({
+            "screen1": 2000,
+            "screen2": 2000,
+            "oilSymbol": 2000
+        })
+        const system = ref ({
+            "rev": "0.8.15"
+        })
+
+        // Share the states to be used in the components
+        provide('wifi', wifi)
+        provide('tank', tank)
+        provide('states', states)
+        provide('rain', rain)
+        provide('pump', pump)
+        provide('emergency', emergency)
+        provide('display', display)
+        provide('system', system)
+
+        function Dump() {
+          console.log("wifi: " + JSON.stringify(wifi.value))
+          console.log("tank: " + JSON.stringify(tank.value))
+          console.log("states: " + JSON.stringify(states.value))
+          console.log("rain: " + JSON.stringify(rain.value))
+          console.log("pump: " + JSON.stringify(pump.value))
+          console.log("emergency: " + JSON.stringify(emergency.value))
+          console.log("display: " + JSON.stringify(display.value))
+          console.log("system: " + JSON.stringify(system.value))
+        }
+        async function update() {
+            const items = [
+              { u: system, uri: "/api/system" },
+              { u: wifi, uri: "/api/wifi" },
+              { u: display, uri: "/api/display" },
+              { u: emergency, uri: "/api/emergency" },
+              { u: pump, uri: "/api/pump" },
+              { u: rain, uri: "/api/rain" },
+              { u: states, uri: "/api/states" },
+              { u: tank, uri: "/api/tank" }
+            ]
+            for (let v of items) {
+              const response = await fetch(v.uri)
+              v.u.value = await response.json()
+              console.log(v.u.value)
+            }
+        }
+        async function save() {
+            const items = [
+              { u: display, uri: "/api/display" },
+              { u: rain, uri: "/api/rain" },
+              { u: wifi, uri: "/api/wifi" },
+              { u: tank, uri: "/api/tank" },
+              { u: states, uri: "/api/states" },
+              { u: pump, uri: "/api/pump" },
+              { u:emergency, uri: "/api/emergency" }
+            ]
+            for (let v of items) {
+              try {
+                console.log(v.u.value)
+                const response = await fetch(v.uri, {
+                  method: "PUT",
+                  headers: {
+                    "Content-Type": "application/json"
+                  },
+                  body: JSON.stringify(v.u.value)
+                })
+                if (response.status === 204) {
+                  console.log("PUT successfully completed.")
+                }
+              } catch (error) {
+                console.error("Fehler bei PUT: " , error)
+              }
+            }
+        }
+        onMounted(update)
+
+        return {
+          // expose to template
+          wifi,
+          tank,
+          states,
+          rain,
+          pump,
+          emergency,
+          display,
+          system,
+          update,
+          save,
+          Dump
+        }
+      },
+      components: {
+        wifiComponent,
+        tankComponent,
+        statesComponent,
+        rainComponent,
+        pumpComponent,
+        emergencyComponent,
+        displayComponent
+      },
+    }).mount('#app')
+  </script>
+
+   <div id="app">
+    <header>
+       <h1>GPS Öler</h1> <!-- add dynamic class binding here -->
+    </header>
+    <main>
+
+      <!-- @submit.prevent="addTodo" verhindert standardbehandlung des browsers. Stattdessen wird addTodo gerufen. -->
+      <div class="buttons" >
+        <button @click="save" class="main-button" >Speichern</button>
+        <button @click="update"class="main-button">Aktualisieren</button>
+      </div>
+      <div class="settings" >
+        <states-component></states-component>
+        <wifi-component></wifi-component>
+        <tank-component></tank-component>
+        <rain-component></rain-component>
+        <pump-component></pump-component>
+        <emergency-component></emergency-component>
+        <display-component></display-component>
+      </div>
+      <div class="buttons">
+        <button @click="save" class="main-button" >Speichern</button>
+        <button @click="update"class="main-button">Aktualisieren</button>
+      </div>
+    </main>
+    <footer>
+      <div>{{ system.rev }}</div>
+    </footer>
+  </div>
+</body>
+</html>

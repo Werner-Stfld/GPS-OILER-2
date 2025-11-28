@@ -1,0 +1,223 @@
+#pragma once
+
+#include <Arduino.h>                  //
+#include <ESP8266WiFi.h>              // Für WIFI
+#include <ESP8266WebServer.h>         // Für WIFI
+#include <LittleFs.h>                 // LittleFS library
+#include <ArduinoJson.h>              // Json Bibliothek
+
+#include "globals.h"
+
+class JsonEndpoint {
+  public: 
+  const char *uri;
+  void (*handle) (JsonDocument &);
+  JsonEndpoint(const char *u, void (*h) (JsonDocument &)): uri(u), handle(h) {}
+};
+
+class WebController {
+  const char *defaultSSID = "GPS-OILER";
+  // WiFi
+  const byte my_WiFi_Mode = 2;              // WIFI_STA = 1 = Workstation  WIFI_AP = 2  = Accesspoint
+  IPAddress local_ip = IPAddress(192, 168, 4, 1); // Die Festgelegte IP Adresse des AP
+  unsigned long TimeAPoutmillis;             // Variable für die Abschaltung des AP
+  boolean activ = true;                      // Variable wird zurückgesetzt wenn Timeout für Access Point erreicht.
+
+  ESP8266WebServer server = ESP8266WebServer (80);
+
+  // web file server prvides the web files contained in the data folder to the browser
+  void ServeFile(String path)
+  {
+    File file = LittleFS.open(path, "r");
+    server.streamFile(file, mime::getContentType(path));
+    file.close();
+  }
+
+  void ServeFile(String path, String contentType)
+  {
+    File file = LittleFS.open(path, "r");
+    server.streamFile(file, contentType);
+    file.close();
+  }
+
+  bool HandleFileRead(String path) 
+  { 
+    if (path.endsWith("/")) path += "index.html";
+    Serial.println("handleFileRead: " + path);
+    
+    if (LittleFS.exists(path)) 
+    {
+      ServeFile(path);
+      return true;
+    }
+
+    Serial.println("file not found: " + path);
+    return false;
+  }
+
+  void handleNotFound() {
+    const char *notFound = R"=====(
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="data:,">
+    <title>404 - Page Not Found</title>
+    <style>
+        h1 {color: #ff4040;}
+    </style>
+</head>
+<body>
+    <h1>404</h1>
+    <p>Oops! The page you are looking for could not be found.</p>
+</body>
+</html>
+)=====";
+    server.send(404, "text/plain", notFound);
+  }
+
+  void RetriggerAPTimeout() {
+    TimeAPoutmillis = millis() + TimeAPout.get() * 1000 * 60; 
+  }
+
+  void putHandler (void (*put) (JsonDocument & doc)) {
+    RetriggerAPTimeout();
+    String json = server.arg("plain");
+    Serial.println(json.c_str());
+
+    JsonDocument doc;
+    DeserializationError error = deserializeJson(doc, json);
+    if (error) {
+      Serial.println("Error reading json format: ");
+      Serial.println(error.c_str());
+      server.send(400);
+      return;
+    }
+    put(doc);
+    server.send(204);
+  }
+
+  void getHandler(void (*get) (JsonDocument & doc)) {
+    RetriggerAPTimeout();
+    String json;
+    JsonDocument doc;
+    get(doc);
+    serializeJson(doc, json);
+    server.send(200, "application/json", json);
+  }
+
+  class HandlerContext {
+    WebController *controller;
+    void (*handler) (JsonDocument & doc);
+    public:
+    HandlerContext(WebController *ctrl, void (*h) (JsonDocument & doc)): controller(ctrl), handler(h) {}
+    void get () {
+      controller->getHandler(handler);
+    };
+    void put () {
+      controller->putHandler(handler);
+    }
+  };
+
+  void SetupWebServer(JsonEndpoint *getEndpoints, JsonEndpoint *putEndpoints) {
+
+    for (int i = 0; getEndpoints[i].handle != nullptr;i++) {
+      HandlerContext *ctx = new HandlerContext(this, getEndpoints[i].handle);
+      server.on(getEndpoints[i].uri, HTTP_GET, [ctx] () { ctx->get(); });
+    }
+
+    for (int i = 0; putEndpoints[i].handle != nullptr;i++) {
+      HandlerContext *ctx = new HandlerContext(this, putEndpoints[i].handle);
+      server.on(putEndpoints[i].uri, HTTP_PUT, [ctx] () { ctx->put(); });
+    }
+    if (!LittleFS.begin()) {
+      Serial.println("LittleFS konnte nicht gestartet werden");
+    }
+    
+    server.onNotFound([&]() {
+      if (!HandleFileRead(server.uri()))
+        handleNotFound();
+    });
+
+    server.begin();
+  }
+
+  void StartOwnAccessPoint()
+  {
+    WiFi.mode(WIFI_AP); // Accesspoint
+    while(!WiFi.softAP(ssid_ap.get(), password_ap.get()))
+    {
+      Serial.println(".");
+      delay(100);
+    }
+    Serial.println("");
+    Serial.print("Started AP:\t");
+    Serial.println(ssid_ap.get());
+    Serial.print("IP address:\t");
+    Serial.println(WiFi.softAPIP());
+  }
+
+  void ConnectToExistingAccessPoint()
+  {
+    WiFi.mode(WIFI_STA); // Access foreign Accesspoint
+    WiFi.begin("network", "network-key");
+    while(WiFi.status() != WL_CONNECTED)
+    {
+      delay(200);
+      Serial.println(".");
+    }
+    Serial.println("");
+    Serial.print("Connected to:\t");
+    Serial.println(WiFi.SSID());
+    Serial.print("IP address:\t");
+    Serial.println(WiFi.localIP());
+  }
+
+  static int checkBoundsTimeAPout(int v) {
+    if (v < 1) 
+      v = 1;
+    return v;
+  }
+public:
+
+  Char20UserVar ssid_ap = Char20UserVar("SSID", defaultSSID, eepromAddr::ssid_ap);                          // Die SSID
+  Char20UserVar password_ap = Char20UserVar("Password", "", eepromAddr::password_ap);                       // alternativ :  = "12345678";
+  IntUserVar TimeAPout = IntUserVar(String("AP Timeout"), 5, eepromAddr::TimeAPout, checkBoundsTimeAPout);  // Zeit in Minuten bis sich der AP wieder abschaltet
+
+  void flush() {
+    ssid_ap.flush();
+    password_ap.flush();
+    TimeAPout.flush();
+  }
+
+  void setup(JsonEndpoint *getEp, JsonEndpoint *putEp)
+  {
+    ssid_ap.read();
+    password_ap.read();
+    TimeAPout.read();
+    StartOwnAccessPoint();
+    SetupWebServer(getEp, putEp);
+    RetriggerAPTimeout();
+  };
+
+  void loop()
+  {
+    if (activ) // do nothing if activ == false
+    {
+      if (millis() >= TimeAPoutmillis)
+      {
+        WiFi.mode(WIFI_OFF);
+        activ = false;
+      }
+      server.handleClient();
+    }
+    if (digitalRead(WLAN_RESET_PIN) == LOW)
+    {
+      ssid_ap.write(defaultSSID,strlen(defaultSSID));
+      password_ap.write("", 0);
+    }
+  };
+};
+
+extern WebController webController;
