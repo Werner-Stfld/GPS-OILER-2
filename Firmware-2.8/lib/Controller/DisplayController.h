@@ -3,6 +3,7 @@
 #include <Adafruit_GFX.h>     //
 #include <Adafruit_SSD1306.h> // Für das OLED
 #include <QRCodeGFX.h>
+#include <complex.h>
 
 #include "Timer.h"
 #include "userVar.h"

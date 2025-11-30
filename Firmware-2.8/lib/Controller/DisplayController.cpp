@@ -1,5 +1,6 @@
 #include <Fonts/FreeMonoBold12pt7b.h> // Schriftart für das OLED
 #include <Fonts/FreeMono9pt7b.h>      // Schriftart für das OLED
+#include <Complex.h>
 
 #include "globals.h"
 #include "webController.h"
@@ -17,12 +18,21 @@ const char *directionShortcut(int degree)
     return dirShortcuts[degree];
 }
 
+bool toggleTankDisplay = false;
 void DisplayController::displayTank()
 {
-    display.drawRect(1, 53, 125, 10, WHITE);        // Border of the bar chart
-    byte v = map(tankPercent, 0, 100, 0, 125); // map percent to rect length
+    if (tankPercent < 15) {
+        toggleTankDisplay = !toggleTankDisplay;
+    } else {
+        toggleTankDisplay = false;
+    }
+    if (toggleTankDisplay) {
+        display.fillRect(1, 53, 75, 10, WHITE);    // Draws full bar
+        return;
+    } 
+    display.drawRect(1, 53, 75, 10, WHITE);        // Border of the bar chart
+    byte v = map(tankPercent, 0, 100, 0, 75); // map percent to rect length
     display.fillRect(1, 53, v, 10, WHITE);      // Draws the bar depending on the sensor value
-    //display.drawRect(1, 53, 128, 11, BLACK);    // Draw rounded rectangle (x,y,width,height,radius,color)
 }
 
 void DisplayController::screen1()
@@ -80,30 +90,13 @@ void DisplayController::screen3()
     display.setFont(&FreeMonoBold12pt7b);            // Ändert die Schriftart auf Bold 12pt
     display.drawRoundRect(1, 27, 75, 25, 4, WHITE);  // Rahmen für die gefahrenen km
     display.drawRoundRect(79, 0, 48, 25, 4, WHITE);  // Rahmen für die Geschwindigkeit
-    display.drawRoundRect(79, 27, 48, 25, 4, WHITE); // Rahmen für die Richtung
 
     if (showSpeed) displaySpeed();
 
     displayDirection();
     displayTime();
     displayTank();
-
-    for (int i = 0; i < 6;i++) {
-        int h=2 + i*4;
-        if (i < (noSattelite - 2)) {
-            display.fillRect (44 + i*5, 25 - h, 4, h, WHITE);
-        } else {
-            display.drawRect (44 + i*5, 25 - h, 4, h, WHITE);
-        }
-    }
-
-    if (showOiling) {
-        display.drawBitmap(1, 6, iconOilcan(), 16, 16, 1);
-    } else  {
-        display.drawRect(1, 2, 16, 23, WHITE);
-        int h = 23*oilingDistanceInPercent/100;
-        display.fillRect(1, 2+h, 16, 23-h, WHITE);
-    }
+    displayNoSattelite();
     if (showRaining) display.drawBitmap(20, 6, iconRaining(), 16, 16, 1);
 
     display.display(); // Print everything we set previously
@@ -127,6 +120,8 @@ void DisplayController::displayDistance()
 
 void DisplayController::displayTime()
 {
+    if (!showSattelite)
+        return;
     int hour = time.hour + timeZone.get();
     while (hour >23) hour-=24;
     while (hour < 0) hour+=24;
@@ -150,18 +145,59 @@ void DisplayController::displayTime()
 
 void DisplayController::displayNoSattelite()
 {
-    char tmp[10];
-    dtostrf(noSattelite, 3, 0, tmp);
-    display.setCursor(32, 20);
-    display.println(tmp);
+    for (int i = 0; i < 6;i++) {
+        int h=2 + i*4;
+        if (i < (noSattelite - 2)) {
+            display.fillRect (44 + i*5, 25 - h, 4, h, WHITE);
+        } else {
+            display.drawRect (44 + i*5, 25 - h, 4, h, WHITE);
+        }
+    }
+
+    if (showOiling) {
+        display.drawBitmap(1, 6, iconOilcan(), 16, 16, 1);
+    } else  {
+        display.drawRect(1, 2, 16, 23, WHITE);
+        int h = 23*oilingDistanceInPercent/100;
+        display.fillRect(1, 2+h, 16, 23-h, WHITE);
+    }
 }
 
+void p(int direction) {
+    float rad = -PI*2*direction/360; 
+    Complex rotx;
+    rotx.polar(1, rad);
+
+    Serial.println(direction);
+    Serial.println(rotx);
+    //Serial.println(roty);
+
+    Complex p = Complex(100,0) * rotx;
+    Serial.println(p);
+
+}
+
+float scale = 16/(float)100;
+Complex o = Complex(0,100)*scale;
+Complex ul = Complex(-70,-70)*scale;
+Complex m = Complex(0,-30)*scale;;
+Complex ur = Complex(70,-70)*scale;;
+Complex center = Complex(103,44);
+
 void DisplayController::displayDirection() {
+    display.drawCircle(center.real(), center.imag(), 17, WHITE);
+    display.drawCircle(center.real(), center.imag(), 18, WHITE);
     if (!showSattelite)
         return; // show direction only if sattelite present
-    const char *shortcut = directionShortcut(direction);
-    display.setCursor((strlen(shortcut) == 2) ? 90 : 98, 46); // x depends on the shortcut length!
-    display.print(shortcut);
+    float rad = PI*2*(direction+180)/360; 
+    Complex rot;
+    rot.polar(1, rad);
+    Complex _o = center + o*rot;
+    Complex _ul = center + ul*rot;
+    Complex _m = center + m*rot;
+    Complex _ur = center + ur*rot;
+    display.fillTriangle(_o.real(), _o.imag(), _ul.real(), _ul.imag(), _m.real(), _m.imag(), WHITE);
+    display.fillTriangle(_o.real(), _o.imag(), _ur.real(), _ur.imag(), _m.real(), _m.imag(), WHITE);
 }
 
 void DisplayController::setup() {
