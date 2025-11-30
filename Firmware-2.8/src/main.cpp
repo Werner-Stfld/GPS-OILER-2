@@ -229,14 +229,11 @@ bool standStillEdgeDetected(bool gpsAvailable, float speed) {
     return false; // no edge detection, if gps is not available.
   if (speed > 3.0)
   {
-    Serial.println("speed > 3");
     speedIsGreaterLimit = true;
     return false;
   }
   // speed <= 3;
   if (speedIsGreaterLimit) {
-    //falling edge detected
-    Serial.println("speed edge detected < 3");
     speedIsGreaterLimit = false;
     return true;
   }
