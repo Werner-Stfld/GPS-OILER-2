@@ -16,7 +16,6 @@ class GpsController {
   unsigned long tmo;                // waiting to complete initialization
   bool _gpsStarted = false;
   public:
-  IntUserVar minGeschwindigkeit = IntUserVar(String("Min. Geschwindigkeit:"), 20, eepromAddr::minGeschwindigkeit); // Mindestgeschwindigkeit zum Ölen
   IntUserVar zeit_bis_notbetrieb = IntUserVar(String("Zeit bis Notbetrieb:"), 180, eepromAddr::zeit_bis_notbetrieb);       // Zeit bis Notbetrieb in Sekunden
 
   bool gpsStarted() {
@@ -27,8 +26,8 @@ class GpsController {
   }
 
   int state = 0;
-  int aSpeed[10] = {0,45,60,90,120,150,180,210,240,270};
-  int aCourse[10] = {0,45,60,90,120,150,180,210,240,270};
+  int aSpeed[10] = {0,5,60,90,120,150,180,210,240,270};
+  int aCourse[10] = {0,5,60,90,120,150,180,210,240,270};
   bool emulatedRead(uint &vSattelites, float &vSpeed, uint &vCourse, gpsTime &vTime) {
     if (state < 5) {
       vSattelites=4;
@@ -47,7 +46,7 @@ class GpsController {
     return true;
   }
 
-  const bool gpsEmulation = false;
+  const bool gpsEmulation = true;
   bool read(uint &vSattelites, float &vSpeed, uint &vCourse, gpsTime &vTime) {
     if (gpsEmulation) {
       return emulatedRead(vSattelites, vSpeed, vCourse, vTime);
@@ -62,7 +61,7 @@ class GpsController {
     if (gps.speed.age() > 10000)
       return false; // More than 10 seconds no update
     vSpeed = gps.speed.kmph();
-    if (vSpeed < minGeschwindigkeit.get())
+    if (vSpeed < 2) // don't flicker if too slow
       vSpeed = 0;
     if (!gps.course.isValid())
       return false;
@@ -98,12 +97,10 @@ class GpsController {
   }
 
   void flush() { // reset eeprom vars
-    minGeschwindigkeit.flush();
     zeit_bis_notbetrieb.flush();
   }
 
   void setup() {
-    minGeschwindigkeit.read();
     zeit_bis_notbetrieb.read();
     gpsSerial.begin(rxBaudrate);
     _gpsStarted = false;

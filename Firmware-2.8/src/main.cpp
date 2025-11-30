@@ -284,7 +284,7 @@ void loop()
     displayController.setTankPercent(tankController.fillGradeInPercent());
     displayController.setOilingDistanceInPercent(distanceController.oilingDistanceInPercent());
   }
-  pumpController.loop();    // process pumping requests
+  pumpController.loop(geschwindigkeit.get());    // process pumping requests
   displayController.loop(); // update display
   webController.loop();     // process web requests
 }
@@ -301,7 +301,7 @@ void evaluate(String input)
   if (gpsController.zeit_bis_notbetrieb.evaluate(input)) return; // Zeit bis Notbetrieb
   if (geschwindigkeit_Notbetrieb.evaluate(input)) return; // Geschwindigkeit Notbetrieb
   if (rainController.pump_nach_Regen.evaluate(input)) return; // Pumpimpulse nach Regenmodus
-  if (gpsController.minGeschwindigkeit.evaluate(input)) return; // Min Gescchwindigkeit
+  if (pumpController.minGeschwindigkeit.evaluate(input)) return; // Min Gescchwindigkeit
   if (distanceController.Gefahrene_km.evaluate(input)) return; // Gefahrene Km
   if (distanceController.pumpDistanz.evaluate(input)) return; // Pumpdistanz
   if (displayController.oilsymbol_Zeit.evaluate(input)) return; // Ölsymbol Anzeigezeit
@@ -365,7 +365,7 @@ void serialStatus()
   geschwindigkeit_Notbetrieb.status();
   distanceController.pumpDistanz.status();
   rainController.pump_nach_Regen.status();
-  gpsController.minGeschwindigkeit.status();
+  pumpController.minGeschwindigkeit.status();
   displayController.Start_disp_1.status();
   displayController.Start_disp_2.status();
   rainController.rainMulti.status();
