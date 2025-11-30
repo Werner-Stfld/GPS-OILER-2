@@ -180,7 +180,7 @@ void p(int direction) {
 float scale = 16/(float)100;
 Complex o = Complex(0,100)*scale;
 Complex ul = Complex(-70,-70)*scale;
-Complex m = Complex(0,-30)*scale;;
+Complex m = Complex(0,-40)*scale;;
 Complex ur = Complex(70,-70)*scale;;
 Complex center = Complex(103,44);
 
