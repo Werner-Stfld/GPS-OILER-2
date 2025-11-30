@@ -26,25 +26,32 @@ class GpsController {
     return gps.speed.isValid() && gps.course.isValid() && gps.satellites.isValid() && gps.satellites.value()>=3;
   }
 
-  // int state = 0;
-  // bool read(uint &vSattelites, float &vSpeed, uint &vCourse, gpsTime &vTime) {
-  //   if (state < 5) {
-  //     state++;
-  //     vSattelites=4;
-  //     vSpeed=120;
-  //     vCourse=165;
-  //     vTime=gpsTime{9,5,13};;
-  //     return true;
-  //   }
-  //   state = state >=10?0:state+1;
-  //   vSattelites=5;
-  //   vSpeed=0;
-  //   vCourse=285;
-  //   vTime=gpsTime{21,31,59};;
-  //   return true;
-  // }
+  int state = 0;
+  int aSpeed[10] = {0,45,60,90,120,150,180,210,240,270};
+  int aCourse[10] = {0,45,60,90,120,150,180,210,240,270};
+  bool emulatedRead(uint &vSattelites, float &vSpeed, uint &vCourse, gpsTime &vTime) {
+    if (state < 5) {
+      vSattelites=4;
+      vSpeed=aSpeed[state];
+      vCourse=aCourse[state];
+      vTime=gpsTime{9,5,13};;
+      state++;
+      return true;
+    }
+    vSattelites=5;
+    vSpeed=aSpeed[state];
+    vCourse=aCourse[state];
+    vTime=gpsTime{21,31,59};;
+    state++;
+    if (state >=10) state = 0;
+    return true;
+  }
 
+  const bool gpsEmulation = false;
   bool read(uint &vSattelites, float &vSpeed, uint &vCourse, gpsTime &vTime) {
+    if (gpsEmulation) {
+      return emulatedRead(vSattelites, vSpeed, vCourse, vTime);
+    }
     vSattelites=0;
     vSpeed=0;
     vCourse=0;
@@ -52,6 +59,8 @@ class GpsController {
 
     if (!gps.speed.isValid())
       return false;
+    if (gps.speed.age() > 10000)
+      return false; // More than 10 seconds no update
     vSpeed = gps.speed.kmph();
     if (vSpeed < minGeschwindigkeit.get())
       vSpeed = 0;
