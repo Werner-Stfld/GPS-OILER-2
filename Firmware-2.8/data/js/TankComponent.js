@@ -34,10 +34,13 @@ export default {
         <legend>Tank</legend>\
         <labelled-input summary="Kapazität" desc="Fassungsvermögen (ml)"/>\
         <input id="Kapazität" type="number" v-model="settings.capacity" min='10' inputmode='dec' name="capacity"/>\
+        ML\
         <labelled-input summary="Inhalt" desc="Aktueller Inhalt (ml). Berechnet aus Anzahl der Pulse und Pulse pro ml."/>\
         <input id="Inhalt" type="number" v-model="settings.content" readonly="true" name="content" />\
+        ML\
         <labelled-input summary="Verbrauch zurücksetzen" desc="Aktueller Inhalt (ml). Aktuellen Inhalt auf Kapazität zurücksetzen."/>\
         <button @click="reset" id="Verbrauch zurücksetzen" type="button" >Rücksetzen</button>\
+        &nbsp;\
       </fieldset>\
     </form>\
   </div>`,

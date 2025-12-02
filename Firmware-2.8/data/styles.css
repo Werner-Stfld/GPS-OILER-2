@@ -36,7 +36,7 @@ header {
 
 .grid-form {
     display: grid;
-    grid-template-columns: 1fr 1fr; /* Label + Eingabefeld */
+    grid-template-columns: 1fr 1fr 4em;/* Label + Eingabefeld */
     gap: 0.5em 1em; /* Abstand zwischen Zeilen und Spalten */
 }
 .grid-form input {

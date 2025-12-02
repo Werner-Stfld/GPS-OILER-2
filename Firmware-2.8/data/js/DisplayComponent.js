@@ -25,12 +25,16 @@ export default {
         <legend>Anzeige</legend>\
         <labelled-input summary="Anzeige1" desc="Anzeigedauer Bildschirm 1 in Sekunden."/>\
         <input id="Anzeige1" type="number" min="300" v-model="settings.screen1" name="screen1"/>\
+        Sek\
         <labelled-input summary="Anzeige2" desc="Anzeigedauer Bildschirm 2 in Sekunden."/>\
         <input id="Anzeige2" type="number" min="300" v-model="settings.screen2" name="screen2"/>\
+        Sek\
         <labelled-input summary="Anzeigedauer Ölen" desc="Anzeigedauer Ölen Symbol in Sekunden."/>\
         <input id="Anzeigedauer Ölen" type="number" min="100" v-model="settings.oilSymbol" name="oilSymbol"/>\
+        Sek\
         <labelled-input summary="Zeitzone" desc="Einstellen der Zeitzone MEZ:1 und der MEZ Sommerzeit: 2"/>\
         <input id="Zeitzone" type="number" min="-13" max="13" v-model="settings.timeZone" name="timeZone"/>\
+        &nbsp;\
       </fieldset>\
     </form>\
   </div>`,

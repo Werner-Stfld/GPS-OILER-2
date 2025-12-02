@@ -25,10 +25,13 @@ export default {
         <legend>Pumpe</legend>\
         <labelled-input summary="Pulse pro ml" desc="Anzahl der Pumppulse um 1 ml zu verbrauchen. Der Wert wird verwendet um den Ölverbrauch zu berechnen."/>\
         <input id="Pulse pro ml" type="number" min="1" v-model="settings.pulsesPerMl" name="pulsesPerMl"/>\
-        <labelled-input summary="Puls-Ein" desc="Zeitdauer eines Pulses in (ms)"/>\
+        &nbsp;\
+        <labelled-input summary="Puls-Ein" desc="Zeitdauer eines Pulses."/>\
         <input id="Puls-Ein" type="number" min="1" v-model="settings.pulseOn" name="pulseOn"/>\
+        M-Sek\
         <labelled-input summary="Puls-Aus" desc="Mindest-Zeitpause nach einem Puls in (ms)"/>\
         <input id="Puls-Aus" type="number" min="1.0" v-model="settings.pulseOff" name="pulseOff" />\
+        M-Sek\
       </fieldset>\
     </form>\
   </div>`,

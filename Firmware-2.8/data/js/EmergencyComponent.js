@@ -24,8 +24,10 @@ export default {
         <legend>Notbetrieb</legend>\
         <labelled-input summary="Notbetrieb Timeout" desc="Zeit in Sekunden die der GPS Empfang aussetzen musss, bevor der Notbetrieb aktiviert wird. Der Wert muss mindestens 10 betragen."/>\
         <input id="Notbetrieb Timeout" type="number" min="10" v-model="settings.timeout" name="timeout"/>\
+        Sek\
         <labelled-input summary="Geschwindigkeit" desc="Geschwindigkeit in km/h die beim Notbetrieb angenommen wird. Der Wert muss wenigstens 30 betragen."/>\
         <input id="Geschwindigkeit" type="number" min="30" v-model="settings.speed" name="speed"/>\
+        Km/h\
       </fieldset>\
     </form>\
   </div>`,
