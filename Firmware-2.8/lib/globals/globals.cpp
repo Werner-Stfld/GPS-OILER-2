@@ -2,7 +2,7 @@
 #include "globals.h"
 
 const char *Rev_OILER = "GPS-OILER-2"; // Bezeichnung der Hardware
-const char *firmware_Vers = "Rev.2.9.0"; // Aktuelle Firmwareversion
+const char *firmware_Vers = "3.0.1-develop"; // Aktuelle Firmwareversion
 
 const int RAIN_SENSOR_PIN = A0; // Pin für Regensensor
 const int RAIN_SENSOR_VOLTAGE_PIN = 15;    // Spannung für den Regensensor

@@ -163,28 +163,15 @@ void DisplayController::displayNoSattelite()
     }
 }
 
-void p(int direction) {
-    float rad = -PI*2*direction/360; 
-    Complex rotx;
-    rotx.polar(1, rad);
-
-    Serial.println(direction);
-    Serial.println(rotx);
-    //Serial.println(roty);
-
-    Complex p = Complex(100,0) * rotx;
-    Serial.println(p);
-
-}
-
 float scale = 16/(float)100;
-Complex o = Complex(0,100)*scale;
-Complex ul = Complex(-70,-70)*scale;
-Complex m = Complex(0,-40)*scale;;
-Complex ur = Complex(70,-70)*scale;;
 Complex center = Complex(103,44);
 
-void DisplayController::displayDirection() {
+void DisplayController::displayDirectionOnMap() {
+    static Complex o = Complex(0,100)*scale;
+    static Complex ul = Complex(-70,-70)*scale;
+    static Complex m = Complex(0,-40)*scale;;
+    static Complex ur = Complex(70,-70)*scale;;
+
     display.drawCircle(center.real(), center.imag(), 17, WHITE);
     display.drawCircle(center.real(), center.imag(), 18, WHITE);
     if (!showSattelite)
@@ -198,6 +185,31 @@ void DisplayController::displayDirection() {
     Complex _ur = center + ur*rot;
     display.fillTriangle(_o.real(), _o.imag(), _ul.real(), _ul.imag(), _m.real(), _m.imag(), WHITE);
     display.fillTriangle(_o.real(), _o.imag(), _ur.real(), _ur.imag(), _m.real(), _m.imag(), WHITE);
+}
+
+void DisplayController::displayDirection() {
+    displayCompass();
+}
+
+void DisplayController::displayCompass() {
+    static Complex n = Complex(0,100)*scale;
+    static Complex e = Complex(30,0)*scale;
+    static Complex w = Complex(-30,0)*scale;;
+    static Complex s = Complex(0,-100)*scale;;
+
+    display.drawCircle(center.real(), center.imag(), 17, WHITE);
+    display.drawCircle(center.real(), center.imag(), 18, WHITE);
+    if (!showSattelite)
+        return; // show direction only if sattelite present
+    float rad = -PI*2*(direction+180)/360; 
+    Complex rot;
+    rot.polar(1, rad);
+    Complex _n = center + n*rot;
+    Complex _e = center + e*rot;
+    Complex _w = center + w*rot;
+    Complex _s = center + s*rot;
+    display.fillTriangle(_n.real(), _n.imag(), _w.real(), _w.imag(), _e.real(), _e.imag(), WHITE);
+    display.drawTriangle(_s.real(), _s.imag(), _w.real(), _w.imag(), _e.real(), _e.imag(), WHITE);
 }
 
 void DisplayController::setup() {

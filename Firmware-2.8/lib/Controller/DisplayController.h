@@ -45,6 +45,9 @@ class DisplayController
 
     Timer displayTimeout = Timer(1000); 
     void displayDirection();
+    void displayCompass();        // compass needle filled triangle toward north
+    void displayDirectionOnMap(); // direction as arrow on a map
+
     void displaySpeed();
     void displayDistance();
     void displayTime();
