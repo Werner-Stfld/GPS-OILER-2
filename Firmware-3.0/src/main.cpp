@@ -1,18 +1,64 @@
+#include <Arduino.h>
+#include <Preferences.h>
 
-// EEPROM I2C Addresse vom Display
+#include "globals.h"
+#include "eepromStorage.h"
+#include "userVar.h"
+#include "WebController.h"
 
+WebController webController = WebController();       
+
+JsonEndpoint getEndpoints[1] = {
+    JsonEndpoint(nullptr, nullptr)
+};
+
+JsonEndpoint putEndpoints[1] = {
+    JsonEndpoint(nullptr, nullptr)
+};
+
+Preferences pref;
+int bootCounter;
+void setup() {
+  // put your setup code here, to run once:
+  pinMode(8, OUTPUT);
+  Serial.begin(115200);
+  Serial.setTxTimeoutMs(10); // kurze Wartezeit
+  delay(1000);
+
+  pref.begin("settings", false);
+
+  bootCounter = pref.getInt("bootCounter", 0);
+  bootCounter ++;
+  pref.putInt("bootCounter", bootCounter);
+  webController.setup(getEndpoints, putEndpoints);
+
+}
+
+void loop() {
+  digitalWrite(8,LOW);
+  delay(500);
+  
+  digitalWrite(8,HIGH);
+  delay(500);
+
+  webController.loop();     // process web requests
+
+  if (Serial) {
+    Serial.print("Servus: ");
+    Serial.println(bootCounter);
+  }
+  // put your main code here, to run repeatedly:
+}
+
+#if FALSE
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <preferences.h>
 
-#include "globals.h"
 #include "Timer.h"
-#include "eepromStorage.h"
-#include "userVar.h"
 #include "GpsController.h"
 #include "RainController.h"
 #include "DisplayController.h"
-#include "WebController.h"
 #include "PumpController.h"
 #include "TankController.h"
 #include "DistanceController.h"
@@ -374,3 +420,4 @@ void serialStatus()
   tankController.tankinhalt_Aktuell.status();
   Factory_init.status();
 }
+#endif

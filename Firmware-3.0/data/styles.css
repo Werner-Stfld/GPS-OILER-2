@@ -1,0 +1,54 @@
+body { 
+    font-family: Arial, sans-serif; 
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+}
+
+main {
+    display: grid;
+    grid-template-columns: 1fr; /* Label + Eingabefeld */
+    grid-template-rows: min-content auto min-content;
+    background: #F1F3F4;
+}
+
+main button {
+    float: right;
+    margin: 1em;
+    border-radius: 0.4em;
+    background: #ebf5d7;
+    color: green;
+    font-weight: bold;
+}
+
+footer {
+    display: flex; 
+    justify-content: flex-end; 
+    background: #F1F3F4;
+    border-color: #8a9da8;
+    min-height: fit-content;
+}
+
+
+header {
+    padding: 0.7em;
+    margin: 0.7em;
+}
+
+.grid-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr 4em;/* Label + Eingabefeld */
+    gap: 0.5em 1em; /* Abstand zwischen Zeilen und Spalten */
+}
+.grid-form input {
+    max-height: max-content;
+}
+
+/* header, */
+main,
+footer,
+fieldset {
+    border-radius: 0 0.5em 0.5em;
+    border: thin solid;
+    padding: 0.7em;
+    margin: 0.7em;
+}
