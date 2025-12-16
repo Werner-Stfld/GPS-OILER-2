@@ -1,74 +1,96 @@
 #pragma once
 
-#include "eepromStorage.h"
+#include "prefs.h"
 
 int noIntBoundsCheck(int);
 
-class IntUserVar {
+// mode controlling the set operation.
+// cache "only" updates the value in memory, setting the "dirty flagm" if the value is modified.
+// flush updates the value in memory and in the persistent store which is used during restore. restore is typically used to set the var during next boot
+typedef enum {
+  cache = false,
+  flush = true
+} SetMode;
+
+class Var {
+  public:
+  virtual void restore() = 0;
+  virtual void flush() = 0;
+  Var *next;
+};
+
+class VarContainer {
+protected:
+  Var *vars = nullptr;
+  public:
+
+  // flush vars to persistant storage
+  void flush();
+
+  // restore vars from persistant storage
+  void restore();
+
+  // Create chain of vars
+  void add(Var *var);
+};
+
+class IntVar : public Var {
   String name;
-  IntEepromVar value;
+  IntPrefVar value;
   int (*checkBounds) (int v);
 
 public:
-  IntUserVar(String n, int initial, eepromAddr a, int (*cb) (int v)=noIntBoundsCheck);
+  IntVar(String n, int initial, PrefKey a, int (*cb) (int v)=noIntBoundsCheck);
 
   int get();
   
-  void set(int v);
+  void set(int v, SetMode mode = cache);
 
   bool evaluate(String &input);
 
   void status();
 
-  int read();
-
-  void write(int v);
+  void restore();
 
   void flush();
 };
 
 float noFloatBoundsCheck(float);
 
-class FloatUserVar {
+class FloatVar : public Var {
   String name;
-  FloatEepromVar value;
+  FloatPrefVar value;
   float (*checkBounds) (float v);
 public:
-  FloatUserVar(String n, float initial, eepromAddr a, float (*floatCheckBounds) (float v)= noFloatBoundsCheck);
+  FloatVar(String n, float initial, PrefKey a, float (*floatCheckBounds) (float v)= noFloatBoundsCheck);
 
   float get();
   
-  void set(float v);
+  void set(float v, SetMode mode = cache);
 
   bool evaluate(String &input);
 
   void status();
 
-  float read();
-
-  void write(float v);
+  void restore();
 
   void flush();
 };
 
-typedef char char20[20];
-
-class Char20UserVar {
+class StringVar : public Var {
   String name;
-  Char20EepromVar value;
+  StringPrefVar value;
 
 public:
-  Char20UserVar(String n, const char *initial, eepromAddr a);
+  StringVar(String n, const char *initial, PrefKey a);
 
   const char *get();
   
-  void set(const char *v, int length);
+  void set(const char * v, SetMode mode = cache);
 
   void status();
 
-  const char *read();
-
-  void write(const char *v, int length);
+  void restore();
 
   void flush();
 };

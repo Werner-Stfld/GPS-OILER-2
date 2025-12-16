@@ -1,60 +1,10 @@
 #include <Arduino.h>
-#include <Preferences.h>
+#include <ArduinoJson.h>
 
 #include "globals.h"
-#include "eepromStorage.h"
+#include "prefs.h"
 #include "userVar.h"
 #include "WebController.h"
-
-WebController webController = WebController();       
-
-JsonEndpoint getEndpoints[1] = {
-    JsonEndpoint(nullptr, nullptr)
-};
-
-JsonEndpoint putEndpoints[1] = {
-    JsonEndpoint(nullptr, nullptr)
-};
-
-Preferences pref;
-int bootCounter;
-void setup() {
-  // put your setup code here, to run once:
-  pinMode(8, OUTPUT);
-  Serial.begin(115200);
-  Serial.setTxTimeoutMs(10); // kurze Wartezeit
-  delay(1000);
-
-  pref.begin("settings", false);
-
-  bootCounter = pref.getInt("bootCounter", 0);
-  bootCounter ++;
-  pref.putInt("bootCounter", bootCounter);
-  webController.setup(getEndpoints, putEndpoints);
-
-}
-
-void loop() {
-  digitalWrite(8,LOW);
-  delay(500);
-  
-  digitalWrite(8,HIGH);
-  delay(500);
-
-  webController.loop();     // process web requests
-
-  if (Serial) {
-    Serial.print("Servus: ");
-    Serial.println(bootCounter);
-  }
-  // put your main code here, to run repeatedly:
-}
-
-#if FALSE
-#include <Arduino.h>
-#include <ArduinoJson.h>
-#include <preferences.h>
-
 #include "Timer.h"
 #include "GpsController.h"
 #include "RainController.h"
@@ -65,16 +15,20 @@ void loop() {
 
 // Benutzerdefinierte Variablen
 // Änderbar über stdin oder über WEB
-// Werte sind im eeprom und werden gecached
-IntUserVar geschwindigkeit_Notbetrieb = IntUserVar(String("Geschwindigkeit Notbetrieb:"),80,eepromAddr::geschwindigkeit_Notbetrieb); // Geschwindigkeit die angenommen wird wenn kein Sat-Empfang ist (Notbetrieb)
-FloatUserVar geschwindigkeit = FloatUserVar(String( "Geschwindigkeit:"), 0, eepromAddr::Noeeprom);         // Aktuelle Geschwindigkeit
-IntUserVar Factory_init = IntUserVar(String("Factory Reset:"),0,eepromAddr::Factory_init); // flag zum Rücksetzen der Einstellungen
+// Werte sind in prefs und werden gecached
+IntVar geschwindigkeit_Notbetrieb = IntVar(String("Geschwindigkeit Notbetrieb:"),80,PrefKeys::geschwindigkeit_Notbetrieb); // Geschwindigkeit die angenommen wird wenn kein Sat-Empfang ist (Notbetrieb)
+FloatVar geschwindigkeit = FloatVar(String( "Geschwindigkeit:"), 0, PrefKeys::Noeeprom);         // Aktuelle Geschwindigkeit
+IntVar Factory_init = IntVar(String("Factory Reset:"),0,PrefKeys::Factory_init); // flag zum Rücksetzen der Einstellungen
 
 TankController tankController = TankController();
 DistanceController distanceController = DistanceController();
 RainController rainController = RainController();
-GpsController gpsController = GpsController(RXPin, GPSBaud);
-PumpController pumpController = PumpController([]() {
+#ifdef HW_PINS_DEFINED
+  GpsController gpsController = GpsController(RXPin, GPSBaud);
+#else
+  GpsController gpsController = GpsController();
+#endif
+  PumpController pumpController = PumpController([]() {
   tankController.getOil(1);
   displayController.triggerShowOiling();
 });
@@ -89,10 +43,10 @@ void getDisplay(JsonDocument &doc) {
 }
 
 void putDisplay(JsonDocument &doc) {
-  displayController.Start_disp_1.write(doc["screen1"]);
-  displayController.Start_disp_2.write(doc["screen2"]);
-  displayController.oilsymbol_Zeit.write(doc["oilSymbol"]);
-  displayController.timeZone.write(doc["timeZone"]);
+  displayController.Start_disp_1.set(doc["screen1"], SetMode::flush);
+  displayController.Start_disp_2.set(doc["screen2"], SetMode::flush);
+  displayController.oilsymbol_Zeit.set(doc["oilSymbol"], SetMode::flush);
+  displayController.timeZone.set(doc["timeZone"], SetMode::flush);
 }
 
 void getRain(JsonDocument &doc) {
@@ -103,10 +57,10 @@ void getRain(JsonDocument &doc) {
 }
 
 void putRain(JsonDocument &doc) {
-  rainController.sw_Regensensor_ein.write( doc["onThreshold"]);
-  rainController.sw_Regensensor_aus.write( doc["offThreshold"]);
-  rainController.rainMulti.write( doc["distanceMultiplier"]);
-  rainController.pump_nach_Regen.write( doc["afterRainOilingPulses"]);
+  rainController.sw_Regensensor_ein.set( doc["onThreshold"], SetMode::flush);
+  rainController.sw_Regensensor_aus.set( doc["offThreshold"], SetMode::flush);
+  rainController.rainMulti.set( doc["distanceMultiplier"], SetMode::flush);
+  rainController.pump_nach_Regen.set( doc["afterRainOilingPulses"], SetMode::flush);
 }
 
 void getPump(JsonDocument &doc) {
@@ -116,9 +70,9 @@ void getPump(JsonDocument &doc) {
 }
 
 void putPump(JsonDocument &doc) {
-  tankController.pumps_ml.write(doc["pulsesPerMl"]);
-  pumpController.zeit_pumpe_ein.write( doc["pulseOn"] );
-  pumpController.zeit_pumpe_pause.write(doc["pulseOff"]);
+  tankController.pumps_ml.set(doc["pulsesPerMl"], SetMode::flush);
+  pumpController.zeit_pumpe_ein.set( doc["pulseOn"] , SetMode::flush);
+  pumpController.zeit_pumpe_pause.set(doc["pulseOff"], SetMode::flush);
 }
 
 void getWifi(JsonDocument &doc) {
@@ -131,11 +85,10 @@ void putWifi(JsonDocument &doc) {
   const char *str=doc["name"];
   int len = strlen(str);
   if (len > 0) 
-    webController.ssid_ap.write(str, len);
+    webController.ssid_ap.set(str, SetMode::flush);
   str=doc["password"];
-  len = strlen(str);
-  webController.password_ap.write( str, len );
-  webController.TimeAPout.write(doc["timeout"]);
+  webController.password_ap.set(str, SetMode::flush);
+  webController.TimeAPout.set(doc["timeout"], SetMode::flush);
 }
 
 void getTank(JsonDocument &doc) {
@@ -144,7 +97,7 @@ void getTank(JsonDocument &doc) {
 }
 
 void putTank(JsonDocument &doc) {
-  tankController.tankinhalt_ml.write(doc["capacity"]);
+  tankController.tankinhalt_ml.set(doc["capacity"], SetMode::flush);
 }
 
 void getSystem(JsonDocument &doc) {
@@ -169,7 +122,7 @@ void getStates(JsonDocument &doc) {
 void putStates(JsonDocument &doc) {
   distanceController.extraOilen = doc["extraOiling"];
   pumpController.setSpuelen(doc["washing"]);
-  distanceController.pumpDistanz.write(doc["pumpDistance"]);
+  distanceController.pumpDistanz.set(doc["pumpDistance"], SetMode::flush);
 }
 
 void getEmergency(JsonDocument &doc) {
@@ -178,19 +131,20 @@ void getEmergency(JsonDocument &doc) {
 }
 
 void putEmergency(JsonDocument &doc) {
-  gpsController.zeit_bis_notbetrieb.write(doc["timeout"]);
-  geschwindigkeit_Notbetrieb.write(doc["speed"]);
+  gpsController.zeit_bis_notbetrieb.set(doc["timeout"], SetMode::flush);
+  geschwindigkeit_Notbetrieb.set(doc["speed"], SetMode::flush);
 }
 
 // Refill tank
 void putTankReset(JsonDocument &doc) {
   tankController.reset();
-  distanceController.Gefahrene_km.write(0.0); // Reset km 
+  distanceController.Gefahrene_km.set(0.0, SetMode::flush); // Reset km 
 }
 
 // Force system defaults during next startup
 void putSystemDefaults(JsonDocument &doc) {
-  write_int(eepromAddr::Factory_init, doc["init"]);
+  if (doc["init"].is<JsonVariant>())
+    Factory_init.set(doc["init"], SetMode::flush);
 }
 
 JsonEndpoint getEndpoints[9] = {
@@ -226,13 +180,16 @@ void setup()
 {
   delay(300);
   Serial.begin(115200);
+  Serial.setTxTimeoutMs(10); // kurze Wartezeit
 
-  Wire.begin();
+  //ToDo: Check Wire.begin();
   delay(200);
+  Serial.println("setup 01");
 
-  if (Factory_init.read()>0)
-  {
-    Factory_init.write(0);
+  Factory_init.restore();
+  if (Factory_init.get()>0)
+  { // flush all vars with initial values
+    Factory_init.set(0, SetMode::flush);
     gpsController.flush();
     rainController.flush();
     distanceController.flush();
@@ -246,46 +203,50 @@ void setup()
     return;
   }
   serialInput.reserve(200);
-
+  Serial.println("setup 02");
+  
+  webController.setup(getEndpoints, putEndpoints);
   gpsController.setup();
   rainController.setup();
   distanceController.setup();
   displayController.setup();
   pumpController.setup();
   tankController.setup();
-  geschwindigkeit_Notbetrieb.read();
+  geschwindigkeit_Notbetrieb.restore();
 
+#ifdef HW_PINS_DEFINED
   pinMode(U_VCC2, INPUT);
   pinMode(WLAN_RESET_PIN, INPUT);
-
+#endif
   delay(20);
 
   displayController.setTankPercent(tankController.fillGradeInPercent());
-  webController.setup(getEndpoints, putEndpoints);
+  Serial.println("setup 03");
   serialStatus();
 }
 
-Timer secondTimer = Timer(1000);
-Timer minuteTimer = Timer(60000);
+static bool edgeSignalled = true;
 
-static bool speedIsGreaterLimit = true;
-
-// standStillEdgeDetected detects transition from speed > 3,0 km/h to <= 3.0. Triggers saving the distance.
+// standStillEdgeDetected detects transition from speed > 3,0 km/h to <= 2.0. Triggers saving the vars modified so far.
 bool standStillEdgeDetected(bool gpsAvailable, float speed) {
   if (!gpsAvailable)  
     return false; // no edge detection, if gps is not available.
   if (speed > 3.0)
   {
-    speedIsGreaterLimit = true;
+    edgeSignalled = false; // prepare detection of new edge
     return false;
   }
-  // speed <= 3;
-  if (speedIsGreaterLimit) {
-    speedIsGreaterLimit = false;
-    return true;
+  if (edgeSignalled) 
+    return false; 
+  if (speed < 2.0) {
+    edgeSignalled = true; // signal edge only once
+    return true; 
   }
   return false;
 }
+
+Timer secondTimer = Timer(1000);
+Timer minuteTimer = Timer(60000);
 
 void loop()
 {
@@ -306,7 +267,6 @@ void loop()
     gpsTime time;
 
     bool gpsAvailable = gpsController.read(sattelites, speed, direction, time);
-
     geschwindigkeit.set(speed);
     float oilingSpeed = speed; // oilingSpeed: speed to evaluate distance for oiling
     if (!gpsAvailable && gpsController.gpsStarted())
@@ -315,10 +275,13 @@ void loop()
     distanceController.update(oilingSpeed, speed);
     pumpController.RequestPulses(distanceController.pulses() + rainController.pulses()); // pass requested pulses to pumpController
 
-    if (minuteTimer.timedOut() || standStillEdgeDetected(gpsAvailable, speed)) { // Store automatically changing values per minute of when speed lowers 3 km/h
+    if (minuteTimer.timedOut() || standStillEdgeDetected(gpsAvailable, speed)) { 
+      // Flush automatically changing values once per minute or when gps is active indicating speed less then 2 km/h
       distanceController.Gefahrene_km.flush();
       tankController.tankinhalt_Aktuell.flush();
       distanceController.oilingDistance.flush();
+      rainController.raining.flush();
+      pumpController.pendingPulses.flush();
     }
 
     // update display data
@@ -331,9 +294,14 @@ void loop()
     displayController.setTankPercent(tankController.fillGradeInPercent());
     displayController.setOilingDistanceInPercent(distanceController.oilingDistanceInPercent());
   }
-  pumpController.loop(geschwindigkeit.get());    // process pumping requests
+
+  pumpController.loop(geschwindigkeit.get());    // process pump requests
+#if HW_PINS_DEFINED
+  // Don't access display, if no hardware is present
   displayController.loop(); // update display
+#endif
   webController.loop();     // process web requests
+  prefs.AssertClosed();
 }
 
 /////////////////////////////////
@@ -365,7 +333,8 @@ void evaluate(String input)
   
   if (input.startsWith("Set_Factory")||input.startsWith("EEPROM_init"))
   {
-    write_int(eepromAddr::Factory_init, 1);
+    Factory_init.set(1, SetMode::flush);
+    prefs.AssertClosed();
     ESP.restart();
     return;
   }
@@ -420,4 +389,3 @@ void serialStatus()
   tankController.tankinhalt_Aktuell.status();
   Factory_init.status();
 }
-#endif

@@ -2,12 +2,12 @@
 
 #include <Arduino.h>
 #include "globals.h"
+#include "userVar.h"
 
-class RainController {
+class RainController: public VarContainer {
 
   int rainAverage = 0;
   unsigned long tmo = 0;
-  bool raining = false;
   int _remainingPulsesAfterRain;
   int _initAverageLoop;
 
@@ -23,17 +23,23 @@ class RainController {
   };
 
   public:
-    IntUserVar pump_nach_Regen = IntUserVar(String("Pumpstoesse nach Regen:"), 5, eepromAddr::pump_nach_Regen);             // Pumpimpulse wenn der Regenmodus abgeschaltet wird
-    IntUserVar sw_Regensensor_ein = IntUserVar(String("Schwelle Regenmodus ein:"), 600, eepromAddr::sw_Regensensor_ein);        // Schwellwert Regenmodus ein
-    IntUserVar sw_Regensensor_aus = IntUserVar(String("Schwelle Regenmodus aus:"), 800, eepromAddr::sw_Regensensor_aus);        // Schwellwert Regenmodus aus
-    FloatUserVar rainMulti = FloatUserVar(String("Regen Multiplikator:"), (float)2.0, eepromAddr::rainMulti, &checkBoundsRainMulti); // Multiplikator für Regenmodus in Promille
+    IntVar pump_nach_Regen = IntVar(String("Pumpstoesse nach Regen:"), 5, PrefKeys::pump_nach_Regen);             // Pumpimpulse wenn der Regenmodus abgeschaltet wird
+    IntVar sw_Regensensor_ein = IntVar(String("Schwelle Regenmodus ein:"), 600, PrefKeys::sw_Regensensor_ein);    // Schwellwert Regenmodus ein
+    IntVar sw_Regensensor_aus = IntVar(String("Schwelle Regenmodus aus:"), 800, PrefKeys::sw_Regensensor_aus);    // Schwellwert Regenmodus aus
+    FloatVar rainMulti = FloatVar(String("Regen Multiplikator:"), (float)2.0, PrefKeys::rainMulti, &checkBoundsRainMulti); // Multiplikator für Regenmodus in Promille
+    IntVar raining = IntVar(String("Regenmodus:"), 0, PrefKeys::regenmodus);                                      // Regenmodus Zustand beim Ausschalten
 
   RainController() {
     _initAverageLoop = 10; // loop 10 times before using the average value
+    add(&pump_nach_Regen);
+    add(&sw_Regensensor_ein);
+    add(&sw_Regensensor_aus);
+    add(&rainMulti);
+    add(&raining);
   }
 
   bool isRaining() {
-    return raining;
+    return raining.get() != 0;
   }
 
   int pulses() {
@@ -49,26 +55,14 @@ class RainController {
     return oilingSpeed;
   }
 
-  void flush() {
-    pump_nach_Regen.flush();
-    sw_Regensensor_ein.flush();
-    sw_Regensensor_aus.flush();
-    rainMulti.flush();
-    write_int(eepromAddr::regenmodus, 0);
-  }
-
   void setup() {
-
+#ifdef HW_PINS_DEFINED
     pinMode(RAIN_SENSOR_PIN, INPUT);
     pinMode(RAIN_SENSOR_VOLTAGE_PIN, OUTPUT);
     digitalWrite(RAIN_SENSOR_VOLTAGE_PIN, HIGH);
-
+#endif
     tmo = millis() + 1000;
-    pump_nach_Regen.read();
-    sw_Regensensor_ein.read();
-    sw_Regensensor_aus.read();
-    rainMulti.read();
-    raining = read_int(eepromAddr::regenmodus);
+    restore();
   }
 
   void loop() {
@@ -76,7 +70,11 @@ class RainController {
       return;
     tmo = millis() + 1000;
 
+#ifdef HW_PINS_DEFINED
     rainAverage = 0.85 * rainAverage + 0.15 * analogRead(RAIN_SENSOR_PIN);
+#else
+    rainAverage = 650;
+#endif
 
     if (_initAverageLoop > 0) { // wait until the average has been build up
       _initAverageLoop--;
@@ -85,13 +83,11 @@ class RainController {
 
     if (rainAverage <= sw_Regensensor_ein.get())
     {
-      raining = true;
-      write_int(eepromAddr::regenmodus, raining);
+      raining.set(1);
     }
-    if (rainAverage >= sw_Regensensor_aus.get() && raining)
+    if (rainAverage >= sw_Regensensor_aus.get() && isRaining())
     {
-      raining = false;
-      write_int(eepromAddr::regenmodus, raining);
+      raining.set(0);
       _remainingPulsesAfterRain = pump_nach_Regen.get();
     }
   }

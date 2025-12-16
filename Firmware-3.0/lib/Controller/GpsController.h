@@ -9,7 +9,7 @@ struct gpsTime {
   uint8_t second;
 };
 
-class GpsController {
+class GpsController: public VarContainer {
   TinyGPSPlus gps;                   // gps data interpreter
   HardwareSerial gpsSerial;
   int rxPin;
@@ -17,7 +17,7 @@ class GpsController {
   unsigned long tmo;                // waiting to complete initialization
   bool _gpsStarted = false;
   public:
-  IntUserVar zeit_bis_notbetrieb = IntUserVar(String("Zeit bis Notbetrieb:"), 180, eepromAddr::zeit_bis_notbetrieb);       // Zeit bis Notbetrieb in Sekunden
+  IntVar zeit_bis_notbetrieb = IntVar(String("Zeit bis Notbetrieb:"), 180, PrefKeys::zeit_bis_notbetrieb);       // Zeit bis Notbetrieb in Sekunden
 
   bool gpsStarted() {
     return _gpsStarted;
@@ -92,27 +92,36 @@ class GpsController {
       v = 360 - v;                // 310;
     return v;
   }
-
+  
+#ifdef HW_PINS_DEFINED
   GpsController(int _rxPin, uint baudrate): gpsSerial(Serial1) {
     rxBaudrate = baudrate;
     rxPin = _rxPin;
+    add(&zeit_bis_notbetrieb);
   }
+#else
+  GpsController() : gpsSerial(Serial1) {
+    add(&zeit_bis_notbetrieb);
+  }
+#endif
 
-  void flush() { // reset eeprom vars
-    zeit_bis_notbetrieb.flush();
-  }
 
   void setup() {
-    zeit_bis_notbetrieb.read();
+    restore();
+#ifdef HW_PINS_DEFINED
     gpsSerial.begin(rxBaudrate, rxPin);
+#endif
     _gpsStarted = false;
     tmo = millis() + zeit_bis_notbetrieb.get() * 1000; // 180 Sekunden bis Init abgeschlossen sein sollte.
   }
 
   void loop() {
+
+#ifdef HW_PINS_DEFINED
     while (gpsSerial.available() > 0) {
       gps.encode(gpsSerial.read());
     }
+#endif
     if (_gpsStarted) 
       return;
     if (millis() > tmo)

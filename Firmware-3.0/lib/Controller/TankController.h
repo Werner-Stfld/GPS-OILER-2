@@ -3,23 +3,21 @@
 #include <arduino.h>
 #include "userVar.h"
 
-class TankController {
+class TankController: public VarContainer {
 
   public:
-  IntUserVar pumps_ml = IntUserVar(String("Pump Impulse pro ml:"), 50, eepromAddr::pumps_ml);                   // Anzahl der Pumpimpulse pro ml
-  FloatUserVar tankinhalt_ml = FloatUserVar(String("Tankinhalt ml:"),150, eepromAddr::tankinhalt_ml);             // Tankinhalt in ml
-  FloatUserVar tankinhalt_Aktuell =  FloatUserVar(String("Tankinhalt akt. (ml):"), 150, eepromAddr::tankinhalt_Aktuell);        // Wert des Aktuellen Tankinhalts in ml
+  IntVar pumps_ml = IntVar(String("Pump Impulse pro ml:"), 50, PrefKeys::pumps_ml);                   // Anzahl der Pumpimpulse pro ml
+  FloatVar tankinhalt_ml = FloatVar(String("Tankinhalt ml:"),150, PrefKeys::tankinhalt_ml);             // Tankinhalt in ml
+  FloatVar tankinhalt_Aktuell =  FloatVar(String("Tankinhalt akt. (ml):"), 150, PrefKeys::tankinhalt_Aktuell);        // Wert des Aktuellen Tankinhalts in ml
 
-  void flush() {
-      pumps_ml.flush();
-      tankinhalt_ml.flush();
-      tankinhalt_Aktuell.flush();
+  TankController() {
+    add(&pumps_ml);
+    add(&tankinhalt_ml);
+    add(&tankinhalt_Aktuell);
   }
 
   void setup() {
-    pumps_ml.read();
-    tankinhalt_ml.read();
-    tankinhalt_Aktuell.read();
+    restore();
   };
 
   unsigned int fillGradeInPercent() {
@@ -31,7 +29,7 @@ class TankController {
   }
 
   void reset() {
-    tankinhalt_Aktuell.write(tankinhalt_ml.get());
+    tankinhalt_Aktuell.set(tankinhalt_ml.get(), SetMode::flush);
   }
 };
 

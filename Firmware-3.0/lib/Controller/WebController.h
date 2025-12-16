@@ -2,12 +2,12 @@
 
 #include <Arduino.h>                  //
 #include <WiFi.h>              // Für WIFI
-#include <WifiAP.h>
 #include <WebServer.h>         // Für WIFI
 #include <LittleFs.h>                 // LittleFS library
 #include <ArduinoJson.h>              // Json Bibliothek
 
 #include "globals.h"
+#include "uservar.h"
 
 class JsonEndpoint {
   public: 
@@ -16,24 +16,24 @@ class JsonEndpoint {
   JsonEndpoint(const char *u, void (*h) (JsonDocument &)): uri(u), handle(h) {}
 };
 
-String getContentType(String filename) {
-  if (filename.endsWith(".htm")) return "text/html";
-  else if (filename.endsWith(".js")) return "application/javascript";
-  else if (filename.endsWith(".html")) return "text/html";
-  else if (filename.endsWith(".css")) return "text/css";
-  else if (filename.endsWith(".ico")) return "image/x-icon";
-  return "text/plain";
-}
-
-
-class WebController {
+class WebController: VarContainer {
   const char *defaultSSID = "GPS-OILER";
+  const char *defaultPassword = "12345678";
   // WiFi
   const byte my_WiFi_Mode = 2;              // WIFI_STA = 1 = Workstation  WIFI_AP = 2  = Accesspoint
   IPAddress local_ip = IPAddress(192, 168, 4, 1); // Die Festgelegte IP Adresse des AP
   unsigned long TimeAPoutmillis;             // Variable für die Abschaltung des AP
   boolean activ = true;                      // Variable wird zurückgesetzt wenn Timeout für Access Point erreicht.
   WebServer *server = new WebServer(80);
+
+  static String getContentType(String filename) {
+    if (filename.endsWith(".htm")) return "text/html";
+    else if (filename.endsWith(".js")) return "application/javascript";
+    else if (filename.endsWith(".html")) return "text/html";
+    else if (filename.endsWith(".css")) return "text/css";
+    else if (filename.endsWith(".ico")) return "image/x-icon";
+    return "text/plain";
+  }
 
   // web file server prvides the web files contained in the data folder to the browser
   void ServeFile(String path)
@@ -155,13 +155,10 @@ class WebController {
 
   void StartOwnAccessPoint()
   {
+    Serial.println("Starting Access Point");
     WiFi.mode(WIFI_AP); // Accesspoint
-    // while(!WiFi.softAP(ssid_ap.get(), password_ap.get()))
-    while(!WiFi.softAP("GPS-Oiler",""))
-    {
-      Serial.println(".");
-      delay(100);
-    }
+
+    WiFi.softAP(ssid_ap.get(), password_ap.get());
     Serial.println("");
     Serial.print("Started AP:\t");
     Serial.println(WiFi.softAPSSID());
@@ -192,9 +189,15 @@ class WebController {
   }
 public:
 
-  Char20UserVar ssid_ap = Char20UserVar("SSID", defaultSSID, eepromAddr::ssid_ap);                          // Die SSID
-  Char20UserVar password_ap = Char20UserVar("Password", "", eepromAddr::password_ap);                       // alternativ :  = "12345678";
-  IntUserVar TimeAPout = IntUserVar(String("AP Timeout"), 5, eepromAddr::TimeAPout, checkBoundsTimeAPout);  // Zeit in Minuten bis sich der AP wieder abschaltet
+  StringVar ssid_ap = StringVar("SSID", defaultSSID, PrefKeys::ssid_ap);                          // Die SSID
+  StringVar password_ap = StringVar("Password", defaultPassword, PrefKeys::password_ap);                       // alternativ :  = "12345678";
+  IntVar TimeAPout = IntVar(String("AP Timeout"), 5, PrefKeys::TimeAPout, checkBoundsTimeAPout);  // Zeit in Minuten bis sich der AP wieder abschaltet
+
+  WebController() {
+    add(&ssid_ap);
+    add(&password_ap);
+    add(&TimeAPout);
+  }
 
   void flush() {
     ssid_ap.flush();
@@ -204,9 +207,9 @@ public:
 
   void setup(JsonEndpoint *getEp, JsonEndpoint *putEp)
   {
-    ssid_ap.read();
-    password_ap.read();
-    TimeAPout.read();
+    ssid_ap.restore();
+    password_ap.restore(); 
+    TimeAPout.restore();
     StartOwnAccessPoint();
     SetupWebServer(getEp, putEp);
     RetriggerAPTimeout();
@@ -218,16 +221,18 @@ public:
     {
       if (millis() >= TimeAPoutmillis)
       {
-        WiFi.mode(WIFI_OFF);
-        activ = false;
+        // WiFi.mode(WIFI_OFF);
+        // activ = false;
       }
       server->handleClient();
     }
+#ifdef HW_PINS_DEFINED
     if (digitalRead(WLAN_RESET_PIN) == LOW)
     {
-      ssid_ap.write(defaultSSID,strlen(defaultSSID));
-      password_ap.write("", 0);
+      ssid_ap.write(defaultSSID);
+      password_ap.write("");
     }
+#endif
   };
 };
 

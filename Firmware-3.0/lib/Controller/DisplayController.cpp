@@ -213,17 +213,10 @@ void DisplayController::displayCompass() {
 }
 
 void DisplayController::setup() {
+#if HW_PINS_DEFINED
     display.begin(SSD1306_SWITCHCAPVCC, 0x3C); // Initialize display with the I2C address of 0x3C
-    Start_disp_1.read();
-    Start_disp_2.read();
-    oilsymbol_Zeit.read();
-}
-
-void DisplayController::flush() {
-    Start_disp_1.flush();
-    Start_disp_2.flush();
-    oilsymbol_Zeit.flush();
-
+#endif
+    restore();
 }
 
 void DisplayController::loop()

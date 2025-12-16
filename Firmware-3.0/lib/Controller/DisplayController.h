@@ -10,7 +10,7 @@
 #include "gpsController.h"
 
 const boolean invert_Display = true; // Display Invertieren oder nicht
-class DisplayController
+class DisplayController : public VarContainer 
 {
     Adafruit_SSD1306 display = Adafruit_SSD1306(128, 64); // Definition für das OLED
     QRCodeGFX qrcode = QRCodeGFX(display);
@@ -56,13 +56,18 @@ class DisplayController
 
 public:
     void setup();
-    void flush();
 
     void loop();
-    IntUserVar Start_disp_1 = IntUserVar(String("Startbildschirm 1:"), 2, eepromAddr::Start_disp_1);               // Zeit für Startdisplay 1 in Sec.
-    IntUserVar Start_disp_2 = IntUserVar(String("Startbildschirm 2:"), 5, eepromAddr::Start_disp_2);               // Zeit für Startdisplay 2 in Sec.
-    IntUserVar oilsymbol_Zeit = IntUserVar(String("Zeit Ölsymbol:"), 6, eepromAddr::oilsymbol_Zeit);                 // Zeit in Sec. wie lange das OilSymbol erscheint
-    IntUserVar timeZone = IntUserVar(String("Zeitzone:"), 1, eepromAddr::timezone);                 // Zeit in Sec. wie lange das OilSymbol erscheint
+    IntVar Start_disp_1 = IntVar(String("Startbildschirm 1:"), 2, PrefKeys::Start_disp_1);               // Zeit für Startdisplay 1 in Sec.
+    IntVar Start_disp_2 = IntVar(String("Startbildschirm 2:"), 5, PrefKeys::Start_disp_2);               // Zeit für Startdisplay 2 in Sec.
+    IntVar oilsymbol_Zeit = IntVar(String("Zeit Ölsymbol:"), 6, PrefKeys::oilsymbol_Zeit);                 // Zeit in Sec. wie lange das OilSymbol erscheint
+    IntVar timeZone = IntVar(String("Zeitzone:"), 1, PrefKeys::timezone);                 // Zeit in Sec. wie lange das OilSymbol erscheint
+
+    DisplayController() {
+        add(&Start_disp_1);
+        add(&Start_disp_2);
+        add(&timeZone);
+    }
 
     void setDirection(int value)
     {

@@ -4,8 +4,7 @@
 #include "globals.h"
 #include "userVar.h"
 
-class PumpController {
-  unsigned int pendingPulses = 0;
+class PumpController: public VarContainer {
 
   enum {
     pulseIdle,
@@ -17,11 +16,17 @@ class PumpController {
   void (*notifyPulse)();
 
   public:
-  IntUserVar zeit_pumpe_ein = IntUserVar(String("Zeit Pumpdauer:"), 50, eepromAddr::zeit_pumpe_ein); // Zeit in ms wie lange die Pumpe eineschaltet ist
-  IntUserVar zeit_pumpe_pause = IntUserVar(String("Zeit Pumppause:"), 500, eepromAddr::zeit_pumpe_pause); // Zeit zwischen den einzelnen Pumpimpulsen
-  IntUserVar minGeschwindigkeit = IntUserVar(String("Min. Geschwindigkeit:"), 5, eepromAddr::minGeschwindigkeit); // Mindestgeschwindigkeit zum Ölen
+  IntVar zeit_pumpe_ein = IntVar(String("Zeit Pumpdauer:"), 50, PrefKeys::zeit_pumpe_ein); // Zeit in ms wie lange die Pumpe eineschaltet ist
+  IntVar zeit_pumpe_pause = IntVar(String("Zeit Pumppause:"), 500, PrefKeys::zeit_pumpe_pause); // Zeit zwischen den einzelnen Pumpimpulsen
+  IntVar minGeschwindigkeit = IntVar(String("Min. Geschwindigkeit:"), 5, PrefKeys::minGeschwindigkeit); // Mindestgeschwindigkeit zum Ölen
+  IntVar pendingPulses =  IntVar(String("Pending Pulses:"), 0, PrefKeys::pump_pending); // Noch zu erledigende Pulse
 
-  PumpController(void (*onPulse)()=[]() {}) : notifyPulse(onPulse) {}
+  PumpController(void (*onPulse)()=[]() {}) : notifyPulse(onPulse) {
+    add(&zeit_pumpe_ein);
+    add(&zeit_pumpe_pause);
+    add(&minGeschwindigkeit);
+    add(&pendingPulses);
+  }
 
   void setSpuelen(bool v) {
     spuelen = v;
@@ -32,40 +37,39 @@ class PumpController {
   }
 
   void RequestPulses(unsigned int n) {
-    pendingPulses += n;
+    pendingPulses.set(pendingPulses.get() + n);
   }
 
   bool isOiling() {
     return state != pulseIdle;
   }
 
-  void setup() {
-    pinMode(OIL_PIN, OUTPUT);
-    pinMode(LED_PIN, OUTPUT);
-    digitalWrite(LED_PIN, HIGH);
-    digitalWrite(OIL_PIN, HIGH);
-    state = pulseIdle;
-
-    zeit_pumpe_ein.read();
-    zeit_pumpe_pause.read();
-    minGeschwindigkeit.read();
+  void setPin(int v) {
+#ifdef HW_PINS_DEFINED
+    digitalWrite(LED_PIN, v);
+    digitalWrite(OIL_PIN, v);
+#endif
   }
 
-  void flush() {
-    zeit_pumpe_ein.flush();
-    zeit_pumpe_pause.flush();
-    minGeschwindigkeit.flush();
+  void setup() {
+
+#ifdef HW_PINS_DEFINED
+    pinMode(OIL_PIN, OUTPUT);
+    pinMode(LED_PIN, OUTPUT);
+#endif
+    setPin(HIGH);
+    state = pulseIdle;
+    restore();
   }
 
   void loop(float speed) {
-    if ((state == pulseIdle) && (pendingPulses > 0)) {
+    if ((state == pulseIdle) && (pendingPulses.get() > 0)) {
       if (spuelen == false) {
         if (speed < minGeschwindigkeit.get())
           return; // Don't oil in standstill
       }
       state = pulseOn;
-      digitalWrite(OIL_PIN, LOW);
-      digitalWrite(LED_PIN, LOW);
+      setPin(LOW);
       tmo = millis() + zeit_pumpe_ein.get();
       return;
     }
@@ -75,18 +79,17 @@ class PumpController {
 
     if (state == pulseOn) {
       state = pulseOff;
-      digitalWrite(OIL_PIN, HIGH);
-      digitalWrite(LED_PIN, HIGH);
+      setPin(HIGH);
       tmo = millis() + zeit_pumpe_pause.get();
       return;
     }
     if (state == pulseOff) {
       state = pulseIdle;
       notifyPulse();
-      if (pendingPulses > 0 && !spuelen) 
-        pendingPulses -= 1;
+      int pp =pendingPulses.get(); 
+      if (pp > 0 && !spuelen) 
+        pendingPulses.set(pp-1);
       return;
     }
   }
 };
-

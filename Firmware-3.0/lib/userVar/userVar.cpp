@@ -2,50 +2,79 @@
 #include <Arduino.h>
 #include "userVar.h"
 
+// flush vars to persistant storage
+void VarContainer::flush() {
+  Var *tmp = vars;
+  while (tmp != nullptr) {
+    tmp->flush();
+    tmp = tmp->next;
+  }
+}
+
+// restore vars from persistant storage
+void VarContainer::restore() {
+  Var *tmp = vars;
+  while (tmp != nullptr) {
+    tmp->restore();
+    tmp = tmp->next;
+  }
+}
+
+// Create chain of vars
+void VarContainer::add(Var *var) {
+  var->next=nullptr;
+  if (vars == nullptr) {
+    vars = var;
+    return;
+  }
+  Var *tmp = vars;
+  while (tmp->next != nullptr) { // go to var with .next == nullptr
+    tmp=tmp->next;
+  }
+  tmp->next = var;
+}
+
 int noIntBoundsCheck(int v)
 {
   return v;
 }
 
-IntUserVar::IntUserVar(String n, int initial, eepromAddr a, int (*cb) (int)) : name(n), value(a), checkBounds(cb) {
+IntVar::IntVar(String n, int initial, PrefKey a, int (*cb) (int)) : name(n), value(a), checkBounds(cb) {
   value.set(initial);
 }
 
-int IntUserVar::get() {
+int IntVar::get() {
   return value.get();
 }
 
-void IntUserVar::set(int v) {
+void IntVar::set(int v, SetMode mode) {
   value.set(checkBounds(v));
+  if (mode == SetMode::flush)
+    value.flush();
 }
-bool IntUserVar::evaluate(String &input) {
+
+bool IntVar::evaluate(String &input) {
   if (input.startsWith(name))
   {
     input.replace(name, "");
     int value = input.toInt();
-    write(value);
+    set(value, SetMode::flush);
     status();
     return true;
   }
   return false;
 }
 
-void IntUserVar::status() {
+void IntVar::status() {
   Serial.print(name);
   Serial.println(value.get());
 }
 
-int IntUserVar::read() {
-  value.init();
-  return value.get();
+void IntVar::restore() {
+  value.restore();
 }
 
-void IntUserVar::write(int v) {
-  value.set(v);
-  flush();
-}
-
-void IntUserVar::flush() {
+void IntVar::flush() {
   value.flush();
 }
 
@@ -53,75 +82,67 @@ float noFloatBoundsCheck(float v) {
     return v;
 }
 
-FloatUserVar::FloatUserVar(String n, float initial, eepromAddr a, float (*floatCB) (float v)) : name(n), value(a), checkBounds(floatCB) {
+FloatVar::FloatVar(String n, float initial, PrefKey a, float (*floatCB) (float v)) : name(n), value(a), checkBounds(floatCB) {
   value.set(initial);
 }
 
-float FloatUserVar::get() {
+float FloatVar::get() {
   return value.get();
 }
 
-void FloatUserVar::set(float v) {
-  value.set( checkBounds(v));
+void FloatVar::set(float v, SetMode mode) {
+  value.set(checkBounds(v));
+  if (mode == SetMode::flush)
+    value.flush();
 }
 
-bool FloatUserVar::evaluate(String &input) {
+bool FloatVar::evaluate(String &input) {
   if (input.startsWith(name))
   {
     input.replace(name, "");
     float value = input.toDouble();
-    write(value);
+    set(value, SetMode::flush);
     status();
     return true;
   }
   return false;
 }
-void FloatUserVar::status() {
+void FloatVar::status() {
   Serial.print(name);
   Serial.println(value.get());
 }
 
-float FloatUserVar::read() {
-  value.init();
-  return value.get();
+void FloatVar::restore() {
+  value.restore();
 }
 
-void FloatUserVar::write(float v) {
-  set(v);
-  flush();
-}
-
-void FloatUserVar::flush() {
+void FloatVar::flush() {
   value.flush();
 }
 
-Char20UserVar::Char20UserVar(String n, const char *initial, eepromAddr a) : name(n), value(a) {
-  value.set(initial, 20);
+StringVar::StringVar(String n, const char *initial, PrefKey a) : name(n), value(a) {
+  value.set(initial);
 }
 
-const char *Char20UserVar::get() {
+const char *StringVar::get() {
   return value.get();
 }
 
-void Char20UserVar::set(const char *v, int length) {
-  value.set(v, length);
+void StringVar::set(const char *v, SetMode mode) {
+  value.set(v);
+  if (mode == SetMode::flush)
+    value.flush();
 }
 
-void Char20UserVar::status() {
+void StringVar::status() {
   Serial.print(name);
   Serial.println(value.get());
 }
 
-const char *Char20UserVar::read() {
-  value.init();
-  return get();
+void StringVar::restore() {
+  value.restore();
 }
 
-void Char20UserVar::write(const char *v, int length) {
-  set(v, length);
-  flush();
-}
-
-void Char20UserVar::flush() {
+void StringVar::flush() {
   value.flush();
 }

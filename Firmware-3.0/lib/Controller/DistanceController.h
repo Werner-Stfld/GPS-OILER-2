@@ -8,28 +8,25 @@ int checkPumpDistanz(int i) {
   return i > 500?i:500;
 }
 
-class DistanceController {
+class DistanceController : public VarContainer {
   unsigned long start = 0;
 public:
   
-  IntUserVar pumpDistanz = IntUserVar(String("Pumpdistanz:"),2000, eepromAddr::pumpDistanz, checkPumpDistanz);              // Abstand in m zwischen den einzelnen Ölungen
-  FloatUserVar Gefahrene_km =FloatUserVar(String( "Gefahrene Km:"), 0, eepromAddr::Gefahrene_km);         // Für die Anzeige der gefahrenen Strecke seit letztem Tank Reset.
-  FloatUserVar oilingDistance = FloatUserVar(String( "Cannot be modified:"), 0, eepromAddr::oilingDistance);
-  boolean extraOilen = false;        // Variable für extraSpülen
+  IntVar pumpDistanz = IntVar(String("Pumpdistanz:"),2000, PrefKeys::pumpDistanz, checkPumpDistanz);              // Abstand in m zwischen den einzelnen Ölungen
+  FloatVar Gefahrene_km = FloatVar(String( "Gefahrene Km:"), 0, PrefKeys::Gefahrene_km);         // Für die Anzeige der gefahrenen Strecke seit letztem Tank Reset.
+  FloatVar oilingDistance = FloatVar(String( "Cannot be modified:"), 0, PrefKeys::oilingDistance);
+  boolean extraOilen = false;       // Variable für extraSpülen
 
-  void setup() {
-    pumpDistanz.read ();
-    Gefahrene_km.read();
-    oilingDistance.read();
-
-
-    start = millis();
+  DistanceController() {
+    add(&pumpDistanz);
+    add(&Gefahrene_km);
+    add(&oilingDistance);
   }
 
-  void flush() {
-    pumpDistanz.flush ();
-    Gefahrene_km.flush();
-    oilingDistance.flush();
+  void setup() {
+    restore();
+
+    start = millis();
   }
 
   void update (float oilingSpeed, float speed) {
