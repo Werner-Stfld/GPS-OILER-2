@@ -47,7 +47,7 @@ class GpsController: public VarContainer {
     return true;
   }
 
-  const bool gpsEmulation = true;
+  const bool gpsEmulation = false;
   bool read(uint &vSattelites, float &vSpeed, uint &vCourse, gpsTime &vTime) {
     if (gpsEmulation) {
       return emulatedRead(vSattelites, vSpeed, vCourse, vTime);
@@ -109,7 +109,7 @@ class GpsController: public VarContainer {
   void setup() {
     restore();
 #ifdef HW_PINS_DEFINED
-    gpsSerial.begin(rxBaudrate, rxPin);
+    gpsSerial.begin(rxBaudrate, SERIAL_8N1, rxPin);
 #endif
     _gpsStarted = false;
     tmo = millis() + zeit_bis_notbetrieb.get() * 1000; // 180 Sekunden bis Init abgeschlossen sein sollte.
