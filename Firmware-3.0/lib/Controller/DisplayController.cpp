@@ -76,11 +76,6 @@ void DisplayController::screen3()
         return;
     updateRequired = false;
 
-    // if (speed <= 3)
-    // { // reset speed to avoid flickering
-    //     speed = 0;
-    //     direction = 0;
-    // }
     display.setTextColor(WHITE);           // Set color of the text
     display.setRotation(0);                // Set orientation. Goes from 0, 1, 2 or 3
     display.setTextWrap(false);            // By default, long lines of text are set to automatically “wrap” back to the leftmost column.
@@ -89,7 +84,7 @@ void DisplayController::screen3()
     display.clearDisplay();                          // Clear the display so we can refresh
     display.setFont(&FreeMonoBold12pt7b);            // Ändert die Schriftart auf Bold 12pt
     display.drawRoundRect(1, 27, 75, 25, 4, WHITE);  // Rahmen für die gefahrenen km
-    display.drawRoundRect(79, 0, 48, 25, 4, WHITE);  // Rahmen für die Geschwindigkeit
+    display.drawRoundRect(79, 1, 48, 24, 4, WHITE);  // Rahmen für die Geschwindigkeit
 
     if (showSpeed) displaySpeed();
 
@@ -97,6 +92,7 @@ void DisplayController::screen3()
     displayTime();
     displayTank();
     displayNoSattelite();
+    displayOiling();
     if (showRaining) display.drawBitmap(20, 6, iconRaining(), 16, 16, 1);
 
     display.display(); // Print everything we set previously
@@ -105,9 +101,16 @@ void DisplayController::screen3()
 void DisplayController::displaySpeed()
 {
     char tmp[10];
-    dtostrf(speed, 2, 0, tmp);
+#if true
+    dtostrf(speed, 3, 0, tmp);
     display.setCursor(83, 20);
     display.println(tmp);
+#else
+    dtostrf(batteryVoltage, 3, 1, tmp);
+    display.setCursor(83, 20);
+    display.println(tmp);
+
+#endif
 }
 
 void DisplayController::displayDistance()
@@ -153,13 +156,16 @@ void DisplayController::displayNoSattelite()
             display.drawRect (44 + i*5, 25 - h, 4, h, WHITE);
         }
     }
+}
 
+void DisplayController::displayOiling()
+{
     if (showOiling) {
         display.drawBitmap(1, 6, iconOilcan(), 16, 16, 1);
     } else  {
-        display.drawRect(1, 2, 16, 23, WHITE);
-        int h = 23*oilingDistanceInPercent/100;
-        display.fillRect(1, 2+h, 16, 23-h, WHITE);
+        display.drawRect(1, 2, 16, 22, WHITE);
+        int h = 22*oilingDistanceInPercent/100;
+        display.fillRect(1, 3+h, 16, 22-h, WHITE);
     }
 }
 

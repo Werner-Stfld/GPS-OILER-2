@@ -33,6 +33,7 @@ namespace PrefKeys {
   PrefKey timezone = "timezone";                  //
   PrefKey tankinhalt_Aktuell = "tank_cur";        //
   PrefKey pump_pending = "pump_pend";           //
+  PrefKey voltageScale = "volt_scale";    // Skalierungsfaktor für die Batteriespannung
 }
 
 PrefsNamespace prefs = PrefsNamespace("prefs");

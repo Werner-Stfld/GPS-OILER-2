@@ -29,6 +29,7 @@ class DisplayController : public VarContainer
     bool showOiling = false;
     Timer timeoutShowOiling = Timer(0);
     int oilingDistanceInPercent = 0;
+    float batteryVoltage = 12.0;
 
     // Anzeigen des Startbildschirm auf dem OLD-Display
     void screen1();
@@ -53,6 +54,7 @@ class DisplayController : public VarContainer
     void displayTime();
     void displayNoSattelite();
     void displayTank();
+    void displayOiling();
 
 public:
     void setup();
@@ -153,6 +155,12 @@ public:
         if (value.hour != time.hour || value.minute != time.minute)
         {
             time = value;
+            updateRequired = true;
+        }
+    }
+    void setBatteryVoltage(float value) {
+        if (value != batteryVoltage) {
+            batteryVoltage = value;
             updateRequired = true;
         }
     }

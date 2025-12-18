@@ -35,6 +35,7 @@ namespace PrefKeys {
   extern PrefKey timezone;                  //
   extern PrefKey tankinhalt_Aktuell;        //
   extern PrefKey pump_pending;              // Anzahl noch ausstehender Pump Pulse nach reset
+  extern PrefKey voltageScale;
 }
 
 class PrefsNamespace {
