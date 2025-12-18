@@ -46,7 +46,7 @@ class PumpController: public VarContainer {
 
   void setPin(int v) {
 #ifdef HW_PINS_DEFINED
-    digitalWrite(LED_PIN, v);
+    digitalWrite(TESTLED_ROT, v);
     digitalWrite(OIL_PIN, v);
 #endif
   }
@@ -55,7 +55,7 @@ class PumpController: public VarContainer {
 
 #ifdef HW_PINS_DEFINED
     pinMode(OIL_PIN, OUTPUT);
-    pinMode(LED_PIN, OUTPUT);
+    pinMode(TESTLED_ROT, OUTPUT);
 #endif
     setPin(HIGH);
     state = pulseIdle;

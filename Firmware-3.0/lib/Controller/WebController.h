@@ -229,8 +229,8 @@ public:
 #ifdef HW_PINS_DEFINED
     if (digitalRead(WLAN_RESET_PIN) == LOW)
     {
-      ssid_ap.write(defaultSSID);
-      password_ap.write("");
+      ssid_ap.set(defaultSSID, SetMode::flush);
+      password_ap.set("", SetMode::flush);
     }
 #endif
   };

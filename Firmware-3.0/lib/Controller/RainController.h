@@ -58,8 +58,6 @@ class RainController: public VarContainer {
   void setup() {
 #ifdef HW_PINS_DEFINED
     pinMode(RAIN_SENSOR_PIN, INPUT);
-    pinMode(RAIN_SENSOR_VOLTAGE_PIN, OUTPUT);
-    digitalWrite(RAIN_SENSOR_VOLTAGE_PIN, HIGH);
 #endif
     tmo = millis() + 1000;
     restore();

@@ -12,6 +12,7 @@
 #include "PumpController.h"
 #include "TankController.h"
 #include "DistanceController.h"
+#include "VoltageController.h"
 
 // Benutzerdefinierte Variablen
 // Änderbar über stdin oder über WEB
@@ -34,6 +35,7 @@ RainController rainController = RainController();
 });
 WebController webController = WebController();       
 DisplayController displayController = DisplayController();
+VoltageController voltageController = VoltageController();
 
 void getDisplay(JsonDocument &doc) {
   doc["screen1"] = displayController.Start_disp_1.get();;
@@ -181,9 +183,9 @@ void setup()
   delay(300);
   Serial.begin(115200);
   Serial.setTxTimeoutMs(10); // kurze Wartezeit
+  delay(1000);
 
   //ToDo: Check Wire.begin();
-  delay(200);
   Serial.println("setup 01");
 
   Factory_init.restore();
@@ -212,17 +214,27 @@ void setup()
   displayController.setup();
   pumpController.setup();
   tankController.setup();
+  voltageController.setup();
+
   geschwindigkeit_Notbetrieb.restore();
 
 #ifdef HW_PINS_DEFINED
-  pinMode(U_VCC2, INPUT);
   pinMode(WLAN_RESET_PIN, INPUT);
+  pinMode(TANK_RESET_PIN, INPUT);
+  
 #endif
   delay(20);
 
   displayController.setTankPercent(tankController.fillGradeInPercent());
   Serial.println("setup 03");
   serialStatus();
+
+  pinMode(TESTLED_ROT, OUTPUT);
+  digitalWrite(TESTLED_ROT, LOW);
+  pinMode(TESTLED_GRUEN, OUTPUT);
+  digitalWrite(TESTLED_GRUEN, LOW);
+  pinMode(TANK_RESET_PIN, INPUT);
+  pinMode(WLAN_RESET_PIN, INPUT);
 }
 
 static bool edgeSignalled = true;
@@ -258,7 +270,12 @@ void loop()
 
   gpsController.loop();
   rainController.loop();
+  voltageController.loop();
 
+  int wifiReset = digitalRead(WLAN_RESET_PIN);
+  int tankReset = digitalRead(TANK_RESET_PIN);
+  digitalWrite(TESTLED_ROT, wifiReset);
+  digitalWrite(TESTLED_GRUEN, tankReset);
   if (secondTimer.timedOut())
   {
     uint sattelites;
@@ -286,6 +303,7 @@ void loop()
 
     // update display data
     displayController.setShowSattelite(gpsAvailable);
+    displayController.setShowRaining(rainController.isRaining());
     displayController.setDirection(direction);
     displayController.setNoSattelite(sattelites);
     displayController.setSpeed(speed);
@@ -293,6 +311,7 @@ void loop()
     displayController.setTime(time);
     displayController.setTankPercent(tankController.fillGradeInPercent());
     displayController.setOilingDistanceInPercent(distanceController.oilingDistanceInPercent());
+    displayController.setBatteryVoltage(voltageController.voltage());
   }
 
   pumpController.loop(geschwindigkeit.get());    // process pump requests
