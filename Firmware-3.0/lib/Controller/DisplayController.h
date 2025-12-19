@@ -49,11 +49,53 @@ public:
     }
 };
 
+class DisplayController;
+
+void doNothing();
+
+class ScreenBase {
+public:
+    virtual void loop() = 0;
+    bool updateRequired;
+    void (*execute)();
+    ScreenBase *next;
+
+    ScreenBase() {
+        updateRequired = true;
+        execute = doNothing;
+        next = this;
+    }
+};
+
+class MyScreen1 : public ScreenBase {
+    Adafruit_SSD1306 &display;
+    public:
+    void loop();
+    MyScreen1(Adafruit_SSD1306 &_display): display(_display)  {
+    }
+};
+
+class MyScreen2 : public ScreenBase {
+    QRCodeGFX qrcode;
+    Adafruit_SSD1306 &display;
+    public:
+    void loop();
+    MyScreen2(Adafruit_SSD1306 &_display):qrcode(QRCodeGFX(_display)),display(_display)  {
+    }
+};
+
+class MyScreen3 : public ScreenBase {
+    Adafruit_SSD1306 &display;
+    public:
+    void loop();
+    MyScreen3(Adafruit_SSD1306 &_display):display(_display)  {
+    }
+};
+
 const boolean invert_Display = true; // Display Invertieren oder nicht
 class DisplayController : public VarContainer 
 {
     Adafruit_SSD1306 display = Adafruit_SSD1306(128, 64); // Definition für das OLED
-    QRCodeGFX qrcode = QRCodeGFX(display);
     ButtonHandler buttonHandler = ButtonHandler();
     bool updateRequired = true;
     int direction = 0;
@@ -72,16 +114,22 @@ class DisplayController : public VarContainer
     int oilingDistanceInPercent = 0;
     float batteryVoltage = 12.0;
 
-    // Anzeigen des Startbildschirm auf dem OLD-Display
+    MyScreen1 scr1 = MyScreen1(display);
+    MyScreen2 scr2 = MyScreen2(display);
+    MyScreen3 scr3 = MyScreen3(display);
+
+    ScreenBase &currentScreen;
+    // Anzeigen des Startbildschirm auf dem OLED-Display
     void screen1();
     void screen2();
     void screen3();
-    void tankResetScreen();
-    void wifiQrScreen();
-    void webQrScreen();
-    void versionScreen();
-    void wifiResetScreen();
-    void settingsResetScreen();
+    void displayDefaultScreen();
+    void displayTankResetScreen();
+    void displayWifiQrScreen();
+    void displayWebQrScreen();
+    void displayVersionScreen();
+    void displayWifiResetScreen();
+    void displaySettingsResetScreen();
 
     enum displayState
     {
@@ -112,12 +160,7 @@ public:
     IntVar oilsymbol_Zeit = IntVar(String("Zeit Ölsymbol:"), 6, PrefKeys::oilsymbol_Zeit);                 // Zeit in Sec. wie lange das OilSymbol erscheint
     IntVar timeZone = IntVar(String("Zeitzone:"), 1, PrefKeys::timezone);                 // Zeit in Sec. wie lange das OilSymbol erscheint
 
-    DisplayController() {
-        add(&Start_disp_1);
-        add(&Start_disp_2);
-        add(&oilsymbol_Zeit);
-        add(&timeZone);
-    }
+    DisplayController();
 
     void setDirection(int value)
     {
@@ -245,6 +288,7 @@ public:
     };
     void OnSettingsReset(void settingsReset()) {
         onSettingsReset = settingsReset;
+        scr1.execute = settingsReset;
     }
     void (*onWiFiOnOff)(bool) = [](bool f)  {
 

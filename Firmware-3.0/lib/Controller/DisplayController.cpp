@@ -18,6 +18,10 @@ const char *directionShortcut(int degree)
     return dirShortcuts[degree];
 }
 
+void doNothing(){
+    Serial.println("unexpected doNothing() invoked");
+};
+
 bool toggleTankDisplay = false;
 void DisplayController::displayTank()
 {
@@ -33,6 +37,21 @@ void DisplayController::displayTank()
     display.drawRect(1, 53, 75, 10, WHITE);        // Border of the bar chart
     byte v = map(tankPercent, 0, 100, 0, 75); // map percent to rect length
     display.fillRect(1, 53, v, 10, WHITE);      // Draws the bar depending on the sensor value
+}
+
+void MyScreen1::loop() {
+    display.clearDisplay();                // Clear the buffer
+    display.setTextColor(WHITE);           // Set color of the text
+    display.setRotation(0);                // Set orientation. Goes from 0, 1, 2 or 3
+    display.setTextWrap(false);            // By default, long lines of text are set to automatically “wrap” back to the leftmost column.
+    display.dim(0);                        // Set brightness (0 is maximun and 1 is a little dim)
+    display.invertDisplay(invert_Display); //
+    display.setFont(&FreeMono9pt7b);       // Set a custom font
+    display.setCursor(1, 12);              //
+    display.println("CONNECT TO");       //
+    display.println("WLAN SSID");       //
+    display.println(webController.ssid_ap.get());        //
+    display.display();                     // Print everything we set previously
 }
 
 void DisplayController::screen1()
@@ -52,8 +71,7 @@ void DisplayController::screen1()
     display.display();                     // Print everything we set previously
 }
 
-void DisplayController::screen2()
-{
+void MyScreen2::loop() {
     display.clearDisplay();                // Clear the buffer
     display.dim(0);                        // Set brightness (0 is maximun and 1 is a little dim)
     display.invertDisplay(false); //
@@ -68,6 +86,33 @@ void DisplayController::screen2()
     qrcode.draw(serverAddr, 0, 0);
     //qrcode.draw(versionInfo, 48, 0);
     display.display();                     // Print everything we set previously
+}
+
+void MyScreen3::loop() {
+    if (!updateRequired)
+        return;
+    updateRequired = false;
+
+    display.setTextColor(WHITE);           // Set color of the text
+    display.setRotation(0);                // Set orientation. Goes from 0, 1, 2 or 3
+    display.setTextWrap(false);            // By default, long lines of text are set to automatically “wrap” back to the leftmost column.
+    display.invertDisplay(invert_Display); //
+
+    display.clearDisplay();                          // Clear the display so we can refresh
+    display.setFont(&FreeMonoBold12pt7b);            // Ändert die Schriftart auf Bold 12pt
+    display.drawRoundRect(1, 27, 75, 25, 4, WHITE);  // Rahmen für die gefahrenen km
+    display.drawRoundRect(79, 1, 48, 24, 4, WHITE);  // Rahmen für die Geschwindigkeit
+
+    if (showSpeed) displaySpeed();
+
+    displayDirection();
+    displayTime();
+    displayTank();
+    displayNoSattelite();
+    displayOiling();
+    if (showRaining) display.drawBitmap(20, 6, iconRaining(), 16, 16, 1);
+
+    display.display(); // Print everything we set previously
 }
 
 void DisplayController::screen3()
@@ -225,6 +270,27 @@ void DisplayController::setup() {
     restore();
 }
 
+void nothing() {
+}
+
+//Screen defaultScreen = Screen { .draw=&DisplayController::screen1, .execute = nothing, .next = nullptr};
+//Screen tankResetScreen = Screen { .draw=&DisplayController::screen1, .execute = nothing, .next = &defaultScreen};
+
+DisplayController::DisplayController(): currentScreen(scr1) {
+    add(&Start_disp_1);
+    add(&Start_disp_2);
+    add(&oilsymbol_Zeit);
+    add(&timeZone);
+};
+
+void DisplayController::displayDefaultScreen() {
+    screen3();
+}
+
+void DisplayController::displayTankResetScreen() {
+    screen1();
+}
+
 Timer pressedTmo = Timer(200);
 
 void DisplayController::loop(bool pressed)
@@ -271,7 +337,7 @@ void DisplayController::loop(bool pressed)
     }
     case displayState::stateScreen1:
     {
-        screen1();
+        scr1.loop();
         state = stateScreen2;
 
         if (Start_disp_1.get() >= 10)
@@ -284,7 +350,7 @@ void DisplayController::loop(bool pressed)
     }
     case displayState::stateScreen2:
     {
-        screen2();
+        scr2.loop();
         state = stateScreen3;
 
         if (Start_disp_2.get() >= 10)
