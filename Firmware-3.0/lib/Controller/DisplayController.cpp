@@ -23,7 +23,7 @@ void doNothing(){
 };
 
 bool toggleTankDisplay = false;
-void DisplayController::displayTank()
+void MyScreen3::displayTank()
 {
     if (tankPercent < 15) {
         toggleTankDisplay = !toggleTankDisplay;
@@ -51,23 +51,6 @@ void MyScreen1::loop() {
     display.println("CONNECT TO");       //
     display.println("WLAN SSID");       //
     display.println(webController.ssid_ap.get());        //
-    display.display();                     // Print everything we set previously
-}
-
-void DisplayController::screen1()
-{
-    display.clearDisplay();                // Clear the buffer
-    display.setTextColor(WHITE);           // Set color of the text
-    display.setRotation(0);                // Set orientation. Goes from 0, 1, 2 or 3
-    display.setTextWrap(false);            // By default, long lines of text are set to automatically “wrap” back to the leftmost column.
-    display.dim(0);                        // Set brightness (0 is maximun and 1 is a little dim)
-    display.invertDisplay(invert_Display); //
-    display.setFont(&FreeMono9pt7b);       // Set a custom font
-    display.setCursor(1, 12);              //
-    display.println("CONNECT TO");       //
-    display.println("WLAN SSID");       //
-    display.println(webController.ssid_ap.get());        //
-  
     display.display();                     // Print everything we set previously
 }
 
@@ -115,35 +98,7 @@ void MyScreen3::loop() {
     display.display(); // Print everything we set previously
 }
 
-void DisplayController::screen3()
-{
-    if (!updateRequired)
-        return;
-    updateRequired = false;
-
-    display.setTextColor(WHITE);           // Set color of the text
-    display.setRotation(0);                // Set orientation. Goes from 0, 1, 2 or 3
-    display.setTextWrap(false);            // By default, long lines of text are set to automatically “wrap” back to the leftmost column.
-    display.invertDisplay(invert_Display); //
-
-    display.clearDisplay();                          // Clear the display so we can refresh
-    display.setFont(&FreeMonoBold12pt7b);            // Ändert die Schriftart auf Bold 12pt
-    display.drawRoundRect(1, 27, 75, 25, 4, WHITE);  // Rahmen für die gefahrenen km
-    display.drawRoundRect(79, 1, 48, 24, 4, WHITE);  // Rahmen für die Geschwindigkeit
-
-    if (showSpeed) displaySpeed();
-
-    displayDirection();
-    displayTime();
-    displayTank();
-    displayNoSattelite();
-    displayOiling();
-    if (showRaining) display.drawBitmap(20, 6, iconRaining(), 16, 16, 1);
-
-    display.display(); // Print everything we set previously
-}
-
-void DisplayController::displaySpeed()
+void MyScreen3::displaySpeed()
 {
     char tmp[10];
 #if true
@@ -166,7 +121,7 @@ void DisplayController::displayDistance()
     display.println(tmp);
 }
 
-void DisplayController::displayTime()
+void MyScreen3::displayTime()
 {
     if (!showSattelite)
         return;
@@ -191,7 +146,7 @@ void DisplayController::displayTime()
     display.println(tmp);
 }
 
-void DisplayController::displayNoSattelite()
+void MyScreen3::displayNoSattelite()
 {
     for (int i = 0; i < 6;i++) {
         int h=2 + i*4;
@@ -203,7 +158,7 @@ void DisplayController::displayNoSattelite()
     }
 }
 
-void DisplayController::displayOiling()
+void MyScreen3::displayOiling()
 {
     if (showOiling) {
         display.drawBitmap(1, 6, iconOilcan(), 16, 16, 1);
@@ -217,7 +172,7 @@ void DisplayController::displayOiling()
 float scale = 16/(float)100;
 Complex center = Complex(103,44);
 
-void DisplayController::displayDirectionOnMap() {
+void MyScreen3::displayDirectionOnMap() {
     static Complex o = Complex(0,100)*scale;
     static Complex ul = Complex(-70,-70)*scale;
     static Complex m = Complex(0,-40)*scale;;
@@ -238,11 +193,11 @@ void DisplayController::displayDirectionOnMap() {
     display.fillTriangle(_o.real(), _o.imag(), _ur.real(), _ur.imag(), _m.real(), _m.imag(), WHITE);
 }
 
-void DisplayController::displayDirection() {
+void MyScreen3::displayDirection() {
     displayCompass();
 }
 
-void DisplayController::displayCompass() {
+void MyScreen3::displayCompass() {
     static Complex n = Complex(0,100)*scale;
     static Complex e = Complex(30,0)*scale;
     static Complex w = Complex(-30,0)*scale;;
@@ -283,14 +238,6 @@ DisplayController::DisplayController(): currentScreen(scr1) {
     add(&timeZone);
 };
 
-void DisplayController::displayDefaultScreen() {
-    screen3();
-}
-
-void DisplayController::displayTankResetScreen() {
-    screen1();
-}
-
 Timer pressedTmo = Timer(200);
 
 void DisplayController::loop(bool pressed)
@@ -312,18 +259,18 @@ void DisplayController::loop(bool pressed)
     if (timeoutShowOiling.timedOut())
     {
         timeoutShowOiling.nextTimeout(0); // stop timer
-        if (showOiling)
-          updateRequired = true;
-        showOiling=false; // remove oilcan
+        if (scr3.showOiling)
+          scr3.updateRequired = true;
+        scr3.showOiling=false; // remove oilcan
     }
 
-    if (showSattelite)
+    if (scr3.showSattelite)
     {
-        if (!showSpeed) updateRequired = true;
-        showSpeed = true;
+        if (!scr3.showSpeed) updateRequired = true;
+        scr3.showSpeed = true;
         
     } else {
-        showSpeed = !showSpeed; // toggle visibiliy if no sattelite 
+        scr3.showSpeed = !scr3.showSpeed; // toggle visibiliy if no sattelite 
         updateRequired = true;
     }
             
@@ -363,7 +310,7 @@ void DisplayController::loop(bool pressed)
     }
     case displayState::stateScreen3:
     {
-        screen3();
+        scr3.loop();
         state = stateScreen3;
         displayTimeout.nextTimeout(1000); // screen updates every second
         break;

@@ -86,9 +86,31 @@ class MyScreen2 : public ScreenBase {
 
 class MyScreen3 : public ScreenBase {
     Adafruit_SSD1306 &display;
+
+    void displaySpeed();
+    void displayDirection();
+    void displayTime();
+    void displayTank();
+    void displayNoSattelite();
+    void displayOiling();
+    void displayCompass();        // compass needle filled triangle toward north
+    void displayDirectionOnMap(); // direction as arrow on a map
+
     public:
+    bool showRaining = false;
+    bool showSpeed = false;
+    bool showSattelite = 0;
+    float speed = 0;
+    int direction = 0;
+    gpsTime time = {0,0,0};
+    IntVar &timeZone;
+    int tankPercent = 0;
+    bool showOiling = false;
+    int oilingDistanceInPercent = 0;
+    int noSattelite = 0;
+
     void loop();
-    MyScreen3(Adafruit_SSD1306 &_display):display(_display)  {
+    MyScreen3(Adafruit_SSD1306 &_display, IntVar &_timeZone):display(_display), timeZone(_timeZone)  {
     }
 };
 
@@ -98,31 +120,18 @@ class DisplayController : public VarContainer
     Adafruit_SSD1306 display = Adafruit_SSD1306(128, 64); // Definition für das OLED
     ButtonHandler buttonHandler = ButtonHandler();
     bool updateRequired = true;
-    int direction = 0;
-    float speed = 0;
     int distance = 0;
     int rainAverage = 0;
-    int tankPercent = 0;
 
-    gpsTime time = {0,0,0};
-    bool showSattelite = 0;
-    int noSattelite = 0;
-    bool showRaining = false;
-    bool showSpeed = false;
-    bool showOiling = false;
     Timer timeoutShowOiling = Timer(0);
-    int oilingDistanceInPercent = 0;
     float batteryVoltage = 12.0;
 
     MyScreen1 scr1 = MyScreen1(display);
     MyScreen2 scr2 = MyScreen2(display);
-    MyScreen3 scr3 = MyScreen3(display);
+    MyScreen3 scr3 = MyScreen3(display, timeZone);
 
     ScreenBase &currentScreen;
     // Anzeigen des Startbildschirm auf dem OLED-Display
-    void screen1();
-    void screen2();
-    void screen3();
     void displayDefaultScreen();
     void displayTankResetScreen();
     void displayWifiQrScreen();
@@ -140,16 +149,8 @@ class DisplayController : public VarContainer
     } state = displayState::stateSetup;
 
     Timer displayTimeout = Timer(1000); 
-    void displayDirection();
-    void displayCompass();        // compass needle filled triangle toward north
-    void displayDirectionOnMap(); // direction as arrow on a map
 
-    void displaySpeed();
     void displayDistance();
-    void displayTime();
-    void displayNoSattelite();
-    void displayTank();
-    void displayOiling();
 
 public:
     void setup();
@@ -164,19 +165,19 @@ public:
 
     void setDirection(int value)
     {
-        if (value != direction)
+        if (value != scr3.direction)
         {
-            direction = value;
-            updateRequired = true;
+            scr3.direction = value;
+            scr3.updateRequired = true;
         }
     }
 
     void setSpeed(float value)
     {
-        if (value != speed)
+        if (value != scr3.speed)
         {
-            speed = value;
-            updateRequired = true;
+            scr3.speed = value;
+            scr3.updateRequired = true;
         }
     }
     void setDistance(int value)
@@ -198,55 +199,55 @@ public:
 
     void setTankPercent(int value)
     {
-        if (value != tankPercent)
+        if (value != scr3.tankPercent)
         {
-            tankPercent = value;
-            updateRequired = true;
+            scr3.tankPercent = value;
+            scr3.updateRequired = true;
         }
     }
     void setShowOiling(bool value)
     {
-        if (value != showOiling)
+        if (value != scr3.showOiling)
         {
-            showOiling = value;
+            scr3.showOiling = value;
             updateRequired = true;
         }
     }
     void setShowSattelite(bool value)
     {
-        if (value != showSattelite)
+        if (value != scr3.showSattelite)
         {
-            showSattelite = value;
-            updateRequired = true;
+            scr3.showSattelite = value;
+            scr3.updateRequired = true;
         }
     }
     void setNoSattelite(int value)
     {
-        if (value != noSattelite)
+        if (value != scr3.noSattelite)
         {
-            noSattelite = value;
-            updateRequired = true;
+            scr3.noSattelite = value;
+            scr3.updateRequired = true;
         }
     }
     int getNoSattelite()
     {
-        return noSattelite;
+        return scr3.noSattelite;
     }
     void setShowRaining(bool value)
     {
-        if (value != showRaining)
+        if (value != scr3.showRaining)
         {
-            showRaining = value;
-            updateRequired = true;
+            scr3.showRaining = value;
+            scr3.updateRequired = true;
         }
     }
 
     void setTime(gpsTime value)
     {
-        if (value.hour != time.hour || value.minute != time.minute)
+        if (value.hour != scr3.time.hour || value.minute != scr3.time.minute)
         {
-            time = value;
-            updateRequired = true;
+            scr3.time = value;
+            scr3.updateRequired = true;
         }
     }
     void setBatteryVoltage(float value) {
@@ -259,15 +260,15 @@ public:
     void triggerShowOiling()
     {
         timeoutShowOiling.nextTimeout(oilsymbol_Zeit.get()*1000);
-        if (!showOiling) 
-            updateRequired = true;
-        showOiling = true;
+        if (!scr3.showOiling) 
+            scr3.updateRequired = true;
+        scr3.showOiling = true;
     }
 
     void setOilingDistanceInPercent(int value) {
-        if (value != oilingDistanceInPercent) {
-            oilingDistanceInPercent = value;
-            updateRequired = true;
+        if (value != scr3.oilingDistanceInPercent) {
+            scr3.oilingDistanceInPercent = value;
+            scr3.updateRequired = true;
         }
     }
 
