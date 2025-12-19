@@ -225,8 +225,21 @@ void DisplayController::setup() {
     restore();
 }
 
-void DisplayController::loop()
+Timer pressedTmo = Timer(200);
+
+void DisplayController::loop(bool pressed)
 {
+    buttonHandler.loop(pressed);
+    if (buttonHandler.FallingEdge() != 0) {
+        Serial.print("Falling edge: ");
+        Serial.println(buttonHandler.FallingEdge());
+    }
+
+    if (buttonHandler.PressedTime() != 0 && pressedTmo.timedOut()) {
+        Serial.print("Pressed time: ");
+        Serial.println(buttonHandler.PressedTime());
+    }
+
     if (!displayTimeout.timedOut())
         return; // wait to complete one second
 

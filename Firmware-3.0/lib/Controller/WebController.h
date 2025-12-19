@@ -16,7 +16,7 @@ class JsonEndpoint {
   JsonEndpoint(const char *u, void (*h) (JsonDocument &)): uri(u), handle(h) {}
 };
 
-class WebController: VarContainer {
+class WebController: public VarContainer {
   const char *defaultSSID = "GPS-OILER";
   const char *defaultPassword = "12345678";
   // WiFi
@@ -190,7 +190,7 @@ class WebController: VarContainer {
 public:
 
   StringVar ssid_ap = StringVar("SSID", defaultSSID, PrefKeys::ssid_ap);                          // Die SSID
-  StringVar password_ap = StringVar("Password", defaultPassword, PrefKeys::password_ap);                       // alternativ :  = "12345678";
+  StringVar password_ap = StringVar("Password", defaultPassword, PrefKeys::password_ap);          // alternativ :  = "12345678";
   IntVar TimeAPout = IntVar(String("AP Timeout"), 5, PrefKeys::TimeAPout, checkBoundsTimeAPout);  // Zeit in Minuten bis sich der AP wieder abschaltet
 
   WebController() {
@@ -199,17 +199,9 @@ public:
     add(&TimeAPout);
   }
 
-  void flush() {
-    ssid_ap.flush();
-    password_ap.flush();
-    TimeAPout.flush();
-  }
-
   void setup(JsonEndpoint *getEp, JsonEndpoint *putEp)
   {
-    ssid_ap.restore();
-    password_ap.restore(); 
-    TimeAPout.restore();
+    restore();
     StartOwnAccessPoint();
     SetupWebServer(getEp, putEp);
     RetriggerAPTimeout();
@@ -230,7 +222,7 @@ public:
     if (digitalRead(WLAN_RESET_PIN) == LOW)
     {
       ssid_ap.set(defaultSSID, SetMode::flush);
-      password_ap.set("", SetMode::flush);
+      password_ap.set(defaultPassword, SetMode::flush);
     }
 #endif
   };

@@ -9,11 +9,52 @@
 #include "userVar.h"
 #include "gpsController.h"
 
+// detects falling edges of a button. Returns the time, the button has been pressed
+// while button is pressed, 
+class ButtonHandler {
+    unsigned long risingEdge = 0;
+    unsigned long fallingEdge = 0;
+    unsigned long pressedTime = 0;
+    bool lastPressed = false;
+public:
+    ButtonHandler() {
+    }
+
+    unsigned long FallingEdge() {
+        return fallingEdge;
+    }
+    unsigned long PressedTime() {
+        return pressedTime;
+    }
+
+    void loop(bool pressed) {
+        unsigned long m  = millis();
+        fallingEdge = 0;
+        pressedTime = 0;
+        if (lastPressed != pressed) {
+            if (pressed) {
+                risingEdge = m;            
+            } else {
+                if (risingEdge != 0) { // omit fallingEdge if no raisingEdge has been detected so far
+                    fallingEdge = m - risingEdge;
+                }
+            }
+            lastPressed = pressed;
+        }
+        if (pressed) {
+            if (risingEdge != 0) { // omit pressed time  if no raisingEdge has been detected so far
+                pressedTime = m - risingEdge;
+            }
+        }
+    }
+};
+
 const boolean invert_Display = true; // Display Invertieren oder nicht
 class DisplayController : public VarContainer 
 {
     Adafruit_SSD1306 display = Adafruit_SSD1306(128, 64); // Definition für das OLED
     QRCodeGFX qrcode = QRCodeGFX(display);
+    ButtonHandler buttonHandler = ButtonHandler();
     bool updateRequired = true;
     int direction = 0;
     float speed = 0;
@@ -35,6 +76,12 @@ class DisplayController : public VarContainer
     void screen1();
     void screen2();
     void screen3();
+    void tankResetScreen();
+    void wifiQrScreen();
+    void webQrScreen();
+    void versionScreen();
+    void wifiResetScreen();
+    void settingsResetScreen();
 
     enum displayState
     {
@@ -59,7 +106,7 @@ class DisplayController : public VarContainer
 public:
     void setup();
 
-    void loop();
+    void loop(bool pressed);
     IntVar Start_disp_1 = IntVar(String("Startbildschirm 1:"), 2, PrefKeys::Start_disp_1);               // Zeit für Startdisplay 1 in Sec.
     IntVar Start_disp_2 = IntVar(String("Startbildschirm 2:"), 5, PrefKeys::Start_disp_2);               // Zeit für Startdisplay 2 in Sec.
     IntVar oilsymbol_Zeit = IntVar(String("Zeit Ölsymbol:"), 6, PrefKeys::oilsymbol_Zeit);                 // Zeit in Sec. wie lange das OilSymbol erscheint
@@ -68,6 +115,7 @@ public:
     DisplayController() {
         add(&Start_disp_1);
         add(&Start_disp_2);
+        add(&oilsymbol_Zeit);
         add(&timeZone);
     }
 
@@ -178,6 +226,32 @@ public:
             oilingDistanceInPercent = value;
             updateRequired = true;
         }
+    }
+
+    void (*onTankReset)() = []()  {
+
+    };
+    void OnTankReset(void tankReset()) {
+        onTankReset = tankReset;
+    }
+    void (*onWiFiReset)() = []()  {
+
+    };
+    void OnWiFiReset(void wiFiReset()) {
+        onWiFiReset = wiFiReset;
+    }
+    void (*onSettingsReset)() = []()  {
+
+    };
+    void OnSettingsReset(void settingsReset()) {
+        onSettingsReset = settingsReset;
+    }
+    void (*onWiFiOnOff)(bool) = [](bool f)  {
+
+    };
+
+    void OnWiFiOnOff(void wifiOnOff(bool)) {
+        onWiFiOnOff = wifiOnOff;
     }
 };
 

@@ -178,6 +178,25 @@ JsonEndpoint putEndpoints[10] = {
 String serialInput = ""; // a String to hold incoming data
 void serialStatus();
 
+void tankReset() {
+  Serial.println("Tank Reset");
+}
+
+void wiFiReset() {
+  Serial.println("WiFi Reset");
+}
+
+void settingsReset() {
+  Serial.println("Settings Reset");
+}
+
+void wiFiOnOff(bool on) {
+  if (on) 
+    Serial.println("Wifi ON");
+    else
+    Serial.println("Wifi OFF");
+}
+
 void setup()
 {
   delay(300);
@@ -226,6 +245,11 @@ void setup()
   delay(20);
 
   displayController.setTankPercent(tankController.fillGradeInPercent());
+  displayController.OnTankReset(tankReset);
+  displayController.OnWiFiReset(wiFiReset);
+  displayController.OnSettingsReset(settingsReset);
+  displayController.OnWiFiOnOff(wiFiOnOff);
+
   Serial.println("setup 03");
   serialStatus();
 
@@ -317,7 +341,7 @@ void loop()
   pumpController.loop(geschwindigkeit.get());    // process pump requests
 #if HW_PINS_DEFINED
   // Don't access display, if no hardware is present
-  displayController.loop(); // update display
+  displayController.loop(digitalRead(WLAN_RESET_PIN)==LOW); // update display
 #endif
   webController.loop();     // process web requests
   prefs.AssertClosed();
