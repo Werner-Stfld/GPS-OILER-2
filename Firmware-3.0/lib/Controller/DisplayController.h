@@ -53,12 +53,24 @@ class DisplayController;
 
 void doNothing();
 
+enum ButtonState {
+    none,
+    LongFallingEdge,
+    ShortFallingEdge,  
+};
+
+class ScreenBase;
+struct ScreenArgs {
+    unsigned long buttonPressedTime;
+};
+
 class ScreenBase {
 public:
-    virtual void loop() = 0;
+    virtual void loop(ScreenArgs &state) = 0;
     bool updateRequired;
     void (*execute)();
     ScreenBase *next;
+    Timer displayTimeout = Timer(300);
 
     ScreenBase() {
         updateRequired = true;
@@ -70,7 +82,7 @@ public:
 class MyScreen1 : public ScreenBase {
     Adafruit_SSD1306 &display;
     public:
-    void loop();
+    void loop(ScreenArgs &state);
     MyScreen1(Adafruit_SSD1306 &_display): display(_display)  {
     }
 };
@@ -79,13 +91,14 @@ class MyScreen2 : public ScreenBase {
     QRCodeGFX qrcode;
     Adafruit_SSD1306 &display;
     public:
-    void loop();
+    void loop(ScreenArgs &state);
     MyScreen2(Adafruit_SSD1306 &_display):qrcode(QRCodeGFX(_display)),display(_display)  {
     }
 };
 
 class MyScreen3 : public ScreenBase {
     Adafruit_SSD1306 &display;
+    Timer timeoutShowOiling = Timer(0);
 
     void displaySpeed();
     void displayDirection();
@@ -104,14 +117,18 @@ class MyScreen3 : public ScreenBase {
     int direction = 0;
     gpsTime time = {0,0,0};
     IntVar &timeZone;
+    IntVar &oilsymbol_Zeit;
     int tankPercent = 0;
     bool showOiling = false;
     int oilingDistanceInPercent = 0;
     int noSattelite = 0;
 
-    void loop();
-    MyScreen3(Adafruit_SSD1306 &_display, IntVar &_timeZone):display(_display), timeZone(_timeZone)  {
-    }
+    void loop(ScreenArgs &state);
+    void triggerShowOiling();
+    MyScreen3(Adafruit_SSD1306 &_display, IntVar &_timeZone, IntVar & _oilsymbol_Zeit):
+        display(_display), 
+        timeZone(_timeZone), 
+        oilsymbol_Zeit(_oilsymbol_Zeit)  {}
 };
 
 const boolean invert_Display = true; // Display Invertieren oder nicht
@@ -123,14 +140,13 @@ class DisplayController : public VarContainer
     int distance = 0;
     int rainAverage = 0;
 
-    Timer timeoutShowOiling = Timer(0);
     float batteryVoltage = 12.0;
 
     MyScreen1 scr1 = MyScreen1(display);
     MyScreen2 scr2 = MyScreen2(display);
-    MyScreen3 scr3 = MyScreen3(display, timeZone);
+    MyScreen3 scr3 = MyScreen3(display, timeZone, oilsymbol_Zeit);
 
-    ScreenBase &currentScreen;
+    ScreenBase *currentScreen;
     // Anzeigen des Startbildschirm auf dem OLED-Display
     void displayDefaultScreen();
     void displayTankResetScreen();
@@ -156,10 +172,10 @@ public:
     void setup();
 
     void loop(bool pressed);
-    IntVar Start_disp_1 = IntVar(String("Startbildschirm 1:"), 2, PrefKeys::Start_disp_1);               // Zeit für Startdisplay 1 in Sec.
-    IntVar Start_disp_2 = IntVar(String("Startbildschirm 2:"), 5, PrefKeys::Start_disp_2);               // Zeit für Startdisplay 2 in Sec.
-    IntVar oilsymbol_Zeit = IntVar(String("Zeit Ölsymbol:"), 6, PrefKeys::oilsymbol_Zeit);                 // Zeit in Sec. wie lange das OilSymbol erscheint
-    IntVar timeZone = IntVar(String("Zeitzone:"), 1, PrefKeys::timezone);                 // Zeit in Sec. wie lange das OilSymbol erscheint
+    IntVar Start_disp_1 = IntVar(String("Startbildschirm 1:"), 2, PrefKeys::Start_disp_1);
+    IntVar Start_disp_2 = IntVar(String("Startbildschirm 2:"), 5, PrefKeys::Start_disp_2);
+    IntVar oilsymbol_Zeit = IntVar(String("Zeit Ölsymbol:"), 6, PrefKeys::oilsymbol_Zeit);
+    IntVar timeZone = IntVar(String("Zeitzone:"), 1, PrefKeys::timezone);                 
 
     DisplayController();
 
@@ -259,10 +275,7 @@ public:
 
     void triggerShowOiling()
     {
-        timeoutShowOiling.nextTimeout(oilsymbol_Zeit.get()*1000);
-        if (!scr3.showOiling) 
-            scr3.updateRequired = true;
-        scr3.showOiling = true;
+        scr3.triggerShowOiling();
     }
 
     void setOilingDistanceInPercent(int value) {

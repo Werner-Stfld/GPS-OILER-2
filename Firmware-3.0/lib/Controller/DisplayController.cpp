@@ -39,7 +39,11 @@ void MyScreen3::displayTank()
     display.fillRect(1, 53, v, 10, WHITE);      // Draws the bar depending on the sensor value
 }
 
-void MyScreen1::loop() {
+void MyScreen1::loop(ScreenArgs &args) {
+    if (!displayTimeout.timedOut()) 
+        return;
+    if (!updateRequired)
+        return;
     display.clearDisplay();                // Clear the buffer
     display.setTextColor(WHITE);           // Set color of the text
     display.setRotation(0);                // Set orientation. Goes from 0, 1, 2 or 3
@@ -54,7 +58,14 @@ void MyScreen1::loop() {
     display.display();                     // Print everything we set previously
 }
 
-void MyScreen2::loop() {
+void MyScreen2::loop(ScreenArgs &args) {
+    if (!displayTimeout.timedOut()) 
+        return;
+    if (!updateRequired)
+        return;
+
+    updateRequired = false;
+
     display.clearDisplay();                // Clear the buffer
     display.dim(0);                        // Set brightness (0 is maximun and 1 is a little dim)
     display.invertDisplay(false); //
@@ -71,7 +82,25 @@ void MyScreen2::loop() {
     display.display();                     // Print everything we set previously
 }
 
-void MyScreen3::loop() {
+void MyScreen3::loop(ScreenArgs &args) {
+
+    if (timeoutShowOiling.timedOut())
+    {
+        timeoutShowOiling.nextTimeout(0); // stop timer
+        if (showOiling)
+            updateRequired = true;
+        showOiling=false; // remove oilcan
+    }
+    if (showSattelite)
+    {
+        if (!showSpeed) updateRequired = true;
+            showSpeed = true;
+    } else {
+        showSpeed = !showSpeed; // toggle visibiliy if no sattelite 
+        updateRequired = true;
+    }
+    if (!displayTimeout.timedOut()) 
+        return;
     if (!updateRequired)
         return;
     updateRequired = false;
@@ -218,6 +247,13 @@ void MyScreen3::displayCompass() {
     display.drawTriangle(_s.real(), _s.imag(), _w.real(), _w.imag(), _e.real(), _e.imag(), WHITE);
 }
 
+void MyScreen3::triggerShowOiling() {
+    timeoutShowOiling.nextTimeout(oilsymbol_Zeit.get()*1000);
+    if (!showOiling) 
+        updateRequired = true;
+    showOiling = true;
+}
+
 void DisplayController::setup() {
 #if HW_PINS_DEFINED
     display.begin(SSD1306_SWITCHCAPVCC, 0x3C); // Initialize display with the I2C address of 0x3C
@@ -225,100 +261,45 @@ void DisplayController::setup() {
     restore();
 }
 
-void nothing() {
-}
+void nothing() {}
 
-//Screen defaultScreen = Screen { .draw=&DisplayController::screen1, .execute = nothing, .next = nullptr};
-//Screen tankResetScreen = Screen { .draw=&DisplayController::screen1, .execute = nothing, .next = &defaultScreen};
-
-DisplayController::DisplayController(): currentScreen(scr1) {
+DisplayController::DisplayController(): currentScreen(&scr1) {
     add(&Start_disp_1);
     add(&Start_disp_2);
-    add(&oilsymbol_Zeit);
-    add(&timeZone);
+    add(&scr3.oilsymbol_Zeit);
+    add(&scr3.timeZone);
+    scr1.next = &scr2;
+    scr2.next = &scr3;
+    scr3.next = &scr1;
 };
 
 Timer pressedTmo = Timer(200);
 
+ButtonState GetButtonState (unsigned long fallingEdge) {
+    if (fallingEdge < 30) // too short
+        return ButtonState::none;
+    if (fallingEdge > 3000 && fallingEdge < 10000) // execute provided action
+        return ButtonState::LongFallingEdge;
+    if (fallingEdge < 300)
+        return ButtonState::ShortFallingEdge;
+    return ButtonState::none;
+}
+
 void DisplayController::loop(bool pressed)
 {
     buttonHandler.loop(pressed);
-    if (buttonHandler.FallingEdge() != 0) {
-        Serial.print("Falling edge: ");
-        Serial.println(buttonHandler.FallingEdge());
-    }
-
-    if (buttonHandler.PressedTime() != 0 && pressedTmo.timedOut()) {
-        Serial.print("Pressed time: ");
-        Serial.println(buttonHandler.PressedTime());
-    }
-
-    if (!displayTimeout.timedOut())
-        return; // wait to complete one second
-
-    if (timeoutShowOiling.timedOut())
-    {
-        timeoutShowOiling.nextTimeout(0); // stop timer
-        if (scr3.showOiling)
-          scr3.updateRequired = true;
-        scr3.showOiling=false; // remove oilcan
-    }
-
-    if (scr3.showSattelite)
-    {
-        if (!scr3.showSpeed) updateRequired = true;
-        scr3.showSpeed = true;
-        
-    } else {
-        scr3.showSpeed = !scr3.showSpeed; // toggle visibiliy if no sattelite 
-        updateRequired = true;
-    }
-            
-    switch (state)
-    {
-    case displayState::stateSetup:
-    {
-        state = stateScreen1;
-        displayTimeout.nextTimeout(100);
-        break;
-    }
-    case displayState::stateScreen1:
-    {
-        scr1.loop();
-        state = stateScreen2;
-
-        if (Start_disp_1.get() >= 10)
-        {
-            Start_disp_1.set(10);
+    ScreenArgs args;
+    args.buttonPressedTime = buttonHandler.PressedTime();
+    ButtonState buttonState = GetButtonState(buttonHandler.FallingEdge());
+    if (buttonState == ButtonState::ShortFallingEdge) {
+        if (currentScreen->next != nullptr) {
+            currentScreen = currentScreen->next;
+            currentScreen->updateRequired = true;
         }
-
-        displayTimeout.nextTimeout(1000 * Start_disp_1.get());
-        break;
     }
-    case displayState::stateScreen2:
-    {
-        scr2.loop();
-        state = stateScreen3;
-
-        if (Start_disp_2.get() >= 10)
-        {
-            Start_disp_2.set(10);
-        }
-
-        displayTimeout.nextTimeout(1000 * Start_disp_2.get());
-        break;
+    if (buttonState == ButtonState::LongFallingEdge) {
+        currentScreen->execute();
+        currentScreen = &scr1;
     }
-    case displayState::stateScreen3:
-    {
-        scr3.loop();
-        state = stateScreen3;
-        displayTimeout.nextTimeout(1000); // screen updates every second
-        break;
-    }
-    default:
-    {
-        state = stateScreen3;
-        displayTimeout.nextTimeout(100);
-    }
-    }
+    currentScreen->loop(args);
 }
