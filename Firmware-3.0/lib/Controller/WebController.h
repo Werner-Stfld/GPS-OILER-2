@@ -38,16 +38,16 @@ class WebController: public VarContainer {
   // web file server prvides the web files contained in the data folder to the browser
   void ServeFile(String path)
   {
-    File file = LittleFS.open(path, "r");
-    server->streamFile(file, getContentType(path));
-    file.close();
+    File f = LittleFS.open(path, "r");
+    server->streamFile(f, getContentType(path));
+    f.close();
   }
 
   void ServeFile(String path, String contentType)
   {
-    File file = LittleFS.open(path, "r");
-    server->streamFile(file, contentType);
-    file.close();
+    File f = LittleFS.open(path, "r");
+    server->streamFile(f, contentType);
+    f.close();
   }
 
   bool HandleFileRead(String path) 
@@ -218,7 +218,7 @@ public:
       }
       server->handleClient();
     }
-#ifdef HW_PINS_DEFINED
+#ifdef false
     if (digitalRead(WLAN_RESET_PIN) == LOW)
     {
       ssid_ap.set(defaultSSID, SetMode::flush);

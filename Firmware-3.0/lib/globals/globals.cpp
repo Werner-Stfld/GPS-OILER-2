@@ -14,5 +14,4 @@ const int RXPin = 7;       // Für Software Serial
 const uint32_t GPSBaud = 9600; // Baudrate für Software Serial
 
 const int OIL_PIN = 2;       // Pin an dem die Pumpe angesteuert wird
-const int TESTLED_ROT = 5;       // LED auf der Platine
-const int TESTLED_GRUEN = 6;       // LED auf der Platine
+

@@ -47,7 +47,7 @@ class GpsController: public VarContainer {
     return true;
   }
 
-  const bool gpsEmulation = false;
+  const bool gpsEmulation = true;
   bool read(uint &vSattelites, float &vSpeed, uint &vCourse, gpsTime &vTime) {
     if (gpsEmulation) {
       return emulatedRead(vSattelites, vSpeed, vCourse, vTime);

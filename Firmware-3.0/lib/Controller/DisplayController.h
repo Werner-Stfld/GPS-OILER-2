@@ -1,13 +1,13 @@
 #pragma once
 
-#include <Adafruit_GFX.h>     //
-#include <Adafruit_SSD1306.h> // Für das OLED
-#include <QRCodeGFX.h>
-#include <complex.h>
+#include <arduino.h>
+#include <Adafruit_GFX.h>      // Core graphics library
+#include <Adafruit_ST7735.h>  // Hardware-specific library
 
 #include "Timer.h"
 #include "userVar.h"
 #include "gpsController.h"
+#include "Screens.h"
 
 // detects falling edges of a button. Returns the time, the button has been pressed
 // while button is pressed, 
@@ -51,100 +51,26 @@ public:
 
 class DisplayController;
 
-void doNothing();
-
 enum ButtonState {
     none,
     LongFallingEdge,
     ShortFallingEdge,  
 };
 
-class ScreenBase;
-struct ScreenArgs {
-    unsigned long buttonPressedTime;
-};
-
-class ScreenBase {
-public:
-    virtual void loop(ScreenArgs &state) = 0;
-    bool updateRequired;
-    void (*execute)();
-    ScreenBase *next;
-    Timer displayTimeout = Timer(300);
-
-    ScreenBase() {
-        updateRequired = true;
-        execute = doNothing;
-        next = this;
-    }
-};
-
-class MyScreen1 : public ScreenBase {
-    Adafruit_SSD1306 &display;
-    public:
-    void loop(ScreenArgs &state);
-    MyScreen1(Adafruit_SSD1306 &_display): display(_display)  {
-    }
-};
-
-class MyScreen2 : public ScreenBase {
-    QRCodeGFX qrcode;
-    Adafruit_SSD1306 &display;
-    public:
-    void loop(ScreenArgs &state);
-    MyScreen2(Adafruit_SSD1306 &_display):qrcode(QRCodeGFX(_display)),display(_display)  {
-    }
-};
-
-class MyScreen3 : public ScreenBase {
-    Adafruit_SSD1306 &display;
-    Timer timeoutShowOiling = Timer(0);
-
-    void displaySpeed();
-    void displayDirection();
-    void displayTime();
-    void displayTank();
-    void displayNoSattelite();
-    void displayOiling();
-    void displayCompass();        // compass needle filled triangle toward north
-    void displayDirectionOnMap(); // direction as arrow on a map
-
-    public:
-    bool showRaining = false;
-    bool showSpeed = false;
-    bool showSattelite = 0;
-    float speed = 0;
-    int direction = 0;
-    gpsTime time = {0,0,0};
-    IntVar &timeZone;
-    IntVar &oilsymbol_Zeit;
-    int tankPercent = 0;
-    bool showOiling = false;
-    int oilingDistanceInPercent = 0;
-    int noSattelite = 0;
-
-    void loop(ScreenArgs &state);
-    void triggerShowOiling();
-    MyScreen3(Adafruit_SSD1306 &_display, IntVar &_timeZone, IntVar & _oilsymbol_Zeit):
-        display(_display), 
-        timeZone(_timeZone), 
-        oilsymbol_Zeit(_oilsymbol_Zeit)  {}
-};
-
-const boolean invert_Display = true; // Display Invertieren oder nicht
 class DisplayController : public VarContainer 
 {
-    Adafruit_SSD1306 display = Adafruit_SSD1306(128, 64); // Definition für das OLED
+    Adafruit_ST7735 display = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_MOSI, TFT_SCLK, -1);
+
     ButtonHandler buttonHandler = ButtonHandler();
     bool updateRequired = true;
-    int distance = 0;
     int rainAverage = 0;
 
     float batteryVoltage = 12.0;
 
-    MyScreen1 scr1 = MyScreen1(display);
-    MyScreen2 scr2 = MyScreen2(display);
-    MyScreen3 scr3 = MyScreen3(display, timeZone, oilsymbol_Zeit);
+    WiFiQrScreen wifiQrScreen = WiFiQrScreen(display);
+    WebQrScreen webQrScreen = WebQrScreen(display);
+    DefaultScreen defaultScreen = DefaultScreen(display, timeZone, oilsymbol_Zeit);
+    ResetTankScreen resetTankScreen = ResetTankScreen(display);
 
     ScreenBase *currentScreen;
     // Anzeigen des Startbildschirm auf dem OLED-Display
@@ -166,8 +92,6 @@ class DisplayController : public VarContainer
 
     Timer displayTimeout = Timer(1000); 
 
-    void displayDistance();
-
 public:
     void setup();
 
@@ -181,26 +105,26 @@ public:
 
     void setDirection(int value)
     {
-        if (value != scr3.direction)
+        if (value != defaultScreen.direction)
         {
-            scr3.direction = value;
-            scr3.updateRequired = true;
+            defaultScreen.direction = value;
+            defaultScreen.updateRequired = true;
         }
     }
 
     void setSpeed(float value)
     {
-        if (value != scr3.speed)
+        if (value != defaultScreen.speed)
         {
-            scr3.speed = value;
-            scr3.updateRequired = true;
+            defaultScreen.speed = value;
+            defaultScreen.updateRequired = true;
         }
     }
     void setDistance(int value)
     {
-        if (value != distance)
+        if (value != defaultScreen.distance)
         {
-            distance = value;
+            defaultScreen.distance = value;
             updateRequired = true;
         }
     }
@@ -215,55 +139,55 @@ public:
 
     void setTankPercent(int value)
     {
-        if (value != scr3.tankPercent)
+        if (value != defaultScreen.tankPercent)
         {
-            scr3.tankPercent = value;
-            scr3.updateRequired = true;
+            defaultScreen.tankPercent = value;
+            defaultScreen.updateRequired = true;
         }
     }
     void setShowOiling(bool value)
     {
-        if (value != scr3.showOiling)
+        if (value != defaultScreen.showOiling)
         {
-            scr3.showOiling = value;
+            defaultScreen.showOiling = value;
             updateRequired = true;
         }
     }
     void setShowSattelite(bool value)
     {
-        if (value != scr3.showSattelite)
+        if (value != defaultScreen.showSattelite)
         {
-            scr3.showSattelite = value;
-            scr3.updateRequired = true;
+            defaultScreen.showSattelite = value;
+            defaultScreen.updateRequired = true;
         }
     }
     void setNoSattelite(int value)
     {
-        if (value != scr3.noSattelite)
+        if (value != defaultScreen.noSattelite)
         {
-            scr3.noSattelite = value;
-            scr3.updateRequired = true;
+            defaultScreen.noSattelite = value;
+            defaultScreen.updateRequired = true;
         }
     }
     int getNoSattelite()
     {
-        return scr3.noSattelite;
+        return defaultScreen.noSattelite;
     }
     void setShowRaining(bool value)
     {
-        if (value != scr3.showRaining)
+        if (value != defaultScreen.showRaining)
         {
-            scr3.showRaining = value;
-            scr3.updateRequired = true;
+            defaultScreen.showRaining = value;
+            defaultScreen.updateRequired = true;
         }
     }
 
     void setTime(gpsTime value)
     {
-        if (value.hour != scr3.time.hour || value.minute != scr3.time.minute)
+        if (value.hour != defaultScreen.time.hour || value.minute != defaultScreen.time.minute)
         {
-            scr3.time = value;
-            scr3.updateRequired = true;
+            defaultScreen.time = value;
+            defaultScreen.updateRequired = true;
         }
     }
     void setBatteryVoltage(float value) {
@@ -275,13 +199,13 @@ public:
 
     void triggerShowOiling()
     {
-        scr3.triggerShowOiling();
+        defaultScreen.triggerShowOiling();
     }
 
     void setOilingDistanceInPercent(int value) {
-        if (value != scr3.oilingDistanceInPercent) {
-            scr3.oilingDistanceInPercent = value;
-            scr3.updateRequired = true;
+        if (value != defaultScreen.oilingDistanceInPercent) {
+            defaultScreen.oilingDistanceInPercent = value;
+            defaultScreen.updateRequired = true;
         }
     }
 
@@ -302,7 +226,7 @@ public:
     };
     void OnSettingsReset(void settingsReset()) {
         onSettingsReset = settingsReset;
-        scr1.execute = settingsReset;
+        wifiQrScreen.execute = settingsReset;
     }
     void (*onWiFiOnOff)(bool) = [](bool f)  {
 

@@ -199,11 +199,12 @@ void wiFiOnOff(bool on) {
 
 void setup()
 {
-  delay(300);
+  delay(500); // wird auf dem c3 benötigt, wenn CDC eingeschaltet ist.
   Serial.begin(115200);
-  Serial.setTxTimeoutMs(10); // kurze Wartezeit
-  delay(1000);
-
+  delay(300);
+  while (!Serial) {
+    delay(10);
+  }
   //ToDo: Check Wire.begin();
   Serial.println("setup 01");
 
@@ -240,7 +241,6 @@ void setup()
 #ifdef HW_PINS_DEFINED
   pinMode(WLAN_RESET_PIN, INPUT);
   pinMode(TANK_RESET_PIN, INPUT);
-  
 #endif
   delay(20);
 
@@ -250,17 +250,11 @@ void setup()
   displayController.OnSettingsReset(settingsReset);
   displayController.OnWiFiOnOff(wiFiOnOff);
 
-  Serial.println("setup 03");
   serialStatus();
 
-  pinMode(TESTLED_ROT, OUTPUT);
-  digitalWrite(TESTLED_ROT, LOW);
-  pinMode(TESTLED_GRUEN, OUTPUT);
-  digitalWrite(TESTLED_GRUEN, LOW);
   pinMode(TANK_RESET_PIN, INPUT);
   pinMode(WLAN_RESET_PIN, INPUT);
 }
-
 static bool edgeSignalled = true;
 
 // standStillEdgeDetected detects transition from speed > 3,0 km/h to <= 2.0. Triggers saving the vars modified so far.
@@ -296,10 +290,6 @@ void loop()
   rainController.loop();
   voltageController.loop();
 
-  int wifiReset = digitalRead(WLAN_RESET_PIN);
-  int tankReset = digitalRead(TANK_RESET_PIN);
-  digitalWrite(TESTLED_ROT, wifiReset);
-  digitalWrite(TESTLED_GRUEN, tankReset);
   if (secondTimer.timedOut())
   {
     uint sattelites;
@@ -339,14 +329,10 @@ void loop()
   }
 
   pumpController.loop(geschwindigkeit.get());    // process pump requests
-#if HW_PINS_DEFINED
-  // Don't access display, if no hardware is present
   displayController.loop(digitalRead(WLAN_RESET_PIN)==LOW); // update display
-#endif
   webController.loop();     // process web requests
   prefs.AssertClosed();
 }
-
 /////////////////////////////////
 // Serial support
 /////////////////////////////////

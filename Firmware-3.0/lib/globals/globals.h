@@ -16,7 +16,11 @@ extern const int RXPin;       // Für Software Serial
 extern const uint32_t GPSBaud; // Baudrate für Software Serial
 
 extern const int OIL_PIN;       // Pin an dem die Pumpe angesteuert wird
-extern const int TESTLED_ROT;       // LED auf der Platine
-extern const int TESTLED_GRUEN;       // LED auf der Platine
+
+#define TFT_DC 10   
+#define TFT_CS 5
+#define TFT_MOSI 6
+#define TFT_SCLK 4
+
 #endif
 
