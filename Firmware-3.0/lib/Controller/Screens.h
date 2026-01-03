@@ -7,6 +7,7 @@
 #include "Timer.h"
 #include "userVar.h"
 #include "gpsController.h"
+#include <TFT_eSPI.h>
 
 const boolean invert_Display = true; // Display Invertieren oder nicht
 
@@ -35,49 +36,49 @@ public:
 
 
 class WiFiQrScreen : public ScreenBase {
-    Adafruit_ST7735  &display;
+    TFT_eSprite  &display;
     public:
     void loop(ScreenArgs &state);
     void setup ();
-    WiFiQrScreen(Adafruit_ST7735  &_display): display(_display)  {
+    WiFiQrScreen(TFT_eSprite  &_display): display(_display)  {
     }
 };
 
 class WebQrScreen : public ScreenBase {
-    Adafruit_ST7735  &display;
+    TFT_eSprite  &display;
     public:
     void loop(ScreenArgs &state);
     void setup ();
-    WebQrScreen(Adafruit_ST7735  &_display):display(_display)  {
+    WebQrScreen(TFT_eSprite  &_display):display(_display)  {
     }
 };
 
 class ResetTankScreen : public ScreenBase {
-    Adafruit_ST7735  &display;
+    TFT_eSprite  &display;
     public:
     void loop(ScreenArgs &args);
     void setup ();
-    ResetTankScreen(Adafruit_ST7735  &_display):display(_display)  {}
+    ResetTankScreen(TFT_eSprite  &_display):display(_display)  {}
 };
 
 class ResetWiFiScreen : public ScreenBase {
-    Adafruit_ST7735  &display;
+    TFT_eSprite  &display;
     public:
     void loop(ScreenArgs &state);
     void setup ();
-    ResetWiFiScreen(Adafruit_ST7735  &_display):display(_display)  {}
+    ResetWiFiScreen(TFT_eSprite  &_display):display(_display)  {}
 };
 
 class ResetSettingsScreen : public ScreenBase {
-    Adafruit_ST7735  &display;
+    TFT_eSprite  &display;
     public:
     void loop(ScreenArgs &state);
     void setup ();
-    ResetSettingsScreen(Adafruit_ST7735  &_display):display(_display)  {}
+    ResetSettingsScreen(TFT_eSprite  &_display):display(_display)  {}
 };
 
 class DefaultScreen : public ScreenBase {
-    Adafruit_ST7735  &display;
+    TFT_eSprite  &display;
     Timer timeoutShowOiling = Timer(0);
 
     void displaySpeed();
@@ -107,7 +108,7 @@ class DefaultScreen : public ScreenBase {
     void loop(ScreenArgs &state);
     void setup ();
     void triggerShowOiling();
-    DefaultScreen(Adafruit_ST7735  &_display, IntVar &_timeZone, IntVar & _oilsymbol_Zeit):
+    DefaultScreen(TFT_eSprite  &_display, IntVar &_timeZone, IntVar & _oilsymbol_Zeit):
         display(_display), 
         timeZone(_timeZone), 
         oilsymbol_Zeit(_oilsymbol_Zeit)  {}

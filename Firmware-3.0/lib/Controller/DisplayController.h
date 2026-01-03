@@ -1,8 +1,7 @@
 #pragma once
 
 #include <arduino.h>
-#include <Adafruit_GFX.h>      // Core graphics library
-#include <Adafruit_ST7735.h>  // Hardware-specific library
+#include <TFT_eSPI.h>
 
 #include "Timer.h"
 #include "userVar.h"
@@ -59,7 +58,8 @@ enum ButtonState {
 
 class DisplayController : public VarContainer 
 {
-    Adafruit_ST7735 display = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_MOSI, TFT_SCLK, -1);
+    TFT_eSPI tft = TFT_eSPI();
+    TFT_eSprite spr = TFT_eSprite(&tft);
 
     ButtonHandler buttonHandler = ButtonHandler();
     bool updateRequired = true;
@@ -67,10 +67,10 @@ class DisplayController : public VarContainer
 
     float batteryVoltage = 12.0;
 
-    WiFiQrScreen wifiQrScreen = WiFiQrScreen(display);
-    WebQrScreen webQrScreen = WebQrScreen(display);
-    DefaultScreen defaultScreen = DefaultScreen(display, timeZone, oilsymbol_Zeit);
-    ResetTankScreen resetTankScreen = ResetTankScreen(display);
+    WiFiQrScreen wifiQrScreen = WiFiQrScreen(spr);
+    WebQrScreen webQrScreen = WebQrScreen(spr);
+    DefaultScreen defaultScreen = DefaultScreen(spr, timeZone, oilsymbol_Zeit);
+    ResetTankScreen resetTankScreen = ResetTankScreen(spr);
 
     ScreenBase *currentScreen;
     // Anzeigen des Startbildschirm auf dem OLED-Display
