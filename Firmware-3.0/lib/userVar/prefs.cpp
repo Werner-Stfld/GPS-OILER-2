@@ -4,7 +4,7 @@
 
 namespace PrefKeys {
   PrefKey Noeeprom = nullptr;
-  PrefKey Factory_init = "factoryinit";
+  PrefKey init_from_preferences = "init_prefs";
   PrefKey anzahl_Pump = "nmb_pump";                 // Adresse für Pumpanzahl
   PrefKey tankinhalt_ml = "tank_vol";              //
   PrefKey pumps_ml = "pumps_per_ml";                   //

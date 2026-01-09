@@ -1,3 +1,58 @@
+#undef test
+#ifdef test
+#include <TFT_eSPI.h>
+#include "Screens.h"
+
+TFT_eSPI tft = TFT_eSPI();
+TFT_eSprite spr = TFT_eSprite(&tft);
+
+extern void *_spi_user;
+
+void setup() {
+  
+  delay(500); // wird auf dem c3 benötigt, wenn CDC eingeschaltet ist.
+  Serial.begin(115200);
+  delay(300);
+  while (!Serial) {
+    delay(10);
+  }
+  //ToDo: Check Wire.begin();
+  Serial.println("setup 01");
+  Serial.println(USER_SETUP_ID);
+
+  Serial.print("MOSI: ");
+  Serial.println(TFT_MOSI);
+  Serial.print("SCLK: ");
+  Serial.println(TFT_SCLK);
+  Serial.print("DC: ");
+  Serial.println(TFT_DC);
+  Serial.print("CS: ");
+  Serial.println(TFT_CS);
+
+  tft.init(INITR_GREENTAB2);
+
+  Serial.println((unsigned long)_spi_user,HEX);
+  tft.setRotation(3);
+  tft.fillScreen(tft.color565(0,255,0));
+  spr.createSprite(TFT_HEIGHT, TFT_WIDTH);  // Vollbild-Sprite
+}
+
+uint8_t i=0;
+void loop() {
+  delay(50);
+  
+  spr.fillRect(0,0,160,40, tft.color565(i,0,0));
+  spr.fillRect(0,41,160,40,tft.color565(0,i,0));
+  spr.fillRect(0,81,160,40, tft.color565(0,0,i));
+  spr.setTextColor(TFT_GREEN, TFT_BLACK);
+  spr.setTextFont(4);
+  String txt = "FF: ";
+  txt += i++;
+
+  spr.drawString(txt.c_str(), 1, 10);
+  spr.pushSprite(0, 0);  // In einem Rutsch aufs Display
+}
+#else
 #include <Arduino.h>
 #include <ArduinoJson.h>
 
@@ -19,160 +74,24 @@
 // Werte sind in prefs und werden gecached
 IntVar geschwindigkeit_Notbetrieb = IntVar(String("Geschwindigkeit Notbetrieb:"),80,PrefKeys::geschwindigkeit_Notbetrieb); // Geschwindigkeit die angenommen wird wenn kein Sat-Empfang ist (Notbetrieb)
 FloatVar geschwindigkeit = FloatVar(String( "Geschwindigkeit:"), 0, PrefKeys::Noeeprom);         // Aktuelle Geschwindigkeit
-IntVar Factory_init = IntVar(String("Factory Reset:"),0,PrefKeys::Factory_init); // flag zum Rücksetzen der Einstellungen
+IntVar initFromPreferences = IntVar(String("Factory Reset:"),0,PrefKeys::init_from_preferences); // flag zum Rücksetzen der Einstellungen
 
+// The endpoints for the web-server
+JsonEndpoint *getEndpoints(); 
+JsonEndpoint *putEndpoints();
+
+// The controllers
 TankController tankController = TankController();
 DistanceController distanceController = DistanceController();
 RainController rainController = RainController();
-#ifdef HW_PINS_DEFINED
-  GpsController gpsController = GpsController(RXPin, GPSBaud);
-#else
-  GpsController gpsController = GpsController();
-#endif
-  PumpController pumpController = PumpController([]() {
+GpsController gpsController = GpsController(RXPin, GPSBaud);
+PumpController pumpController = PumpController([]() {
   tankController.getOil(1);
   displayController.triggerShowOiling();
 });
 WebController webController = WebController();       
 DisplayController displayController = DisplayController();
 VoltageController voltageController = VoltageController();
-
-void getDisplay(JsonDocument &doc) {
-  doc["screen1"] = displayController.Start_disp_1.get();;
-  doc["screen2"] = displayController.Start_disp_2.get();
-  doc["oilSymbol"] = displayController.oilsymbol_Zeit.get();
-  doc["timeZone"] = displayController.timeZone.get();
-}
-
-void putDisplay(JsonDocument &doc) {
-  displayController.Start_disp_1.set(doc["screen1"], SetMode::flush);
-  displayController.Start_disp_2.set(doc["screen2"], SetMode::flush);
-  displayController.oilsymbol_Zeit.set(doc["oilSymbol"], SetMode::flush);
-  displayController.timeZone.set(doc["timeZone"], SetMode::flush);
-}
-
-void getRain(JsonDocument &doc) {
-  doc["onThreshold"] = rainController.sw_Regensensor_ein.get();;
-  doc["offThreshold"] = rainController.sw_Regensensor_aus.get();
-  doc["distanceMultiplier"] = rainController.rainMulti.get();
-  doc["afterRainOilingPulses"] = rainController.pump_nach_Regen.get();
-}
-
-void putRain(JsonDocument &doc) {
-  rainController.sw_Regensensor_ein.set( doc["onThreshold"], SetMode::flush);
-  rainController.sw_Regensensor_aus.set( doc["offThreshold"], SetMode::flush);
-  rainController.rainMulti.set( doc["distanceMultiplier"], SetMode::flush);
-  rainController.pump_nach_Regen.set( doc["afterRainOilingPulses"], SetMode::flush);
-}
-
-void getPump(JsonDocument &doc) {
-  doc["pulsesPerMl"] = tankController.pumps_ml.get();
-  doc["pulseOn"] = pumpController.zeit_pumpe_ein.get();
-  doc["pulseOff"] = pumpController.zeit_pumpe_pause.get();
-}
-
-void putPump(JsonDocument &doc) {
-  tankController.pumps_ml.set(doc["pulsesPerMl"], SetMode::flush);
-  pumpController.zeit_pumpe_ein.set( doc["pulseOn"] , SetMode::flush);
-  pumpController.zeit_pumpe_pause.set(doc["pulseOff"], SetMode::flush);
-}
-
-void getWifi(JsonDocument &doc) {
-  doc["name"] = webController.ssid_ap.get();
-  doc["password"] = webController.password_ap.get();
-  doc["timeout"] = webController.TimeAPout.get();
-}
-
-void putWifi(JsonDocument &doc) {
-  const char *str=doc["name"];
-  int len = strlen(str);
-  if (len > 0) 
-    webController.ssid_ap.set(str, SetMode::flush);
-  str=doc["password"];
-  webController.password_ap.set(str, SetMode::flush);
-  webController.TimeAPout.set(doc["timeout"], SetMode::flush);
-}
-
-void getTank(JsonDocument &doc) {
-  doc["content"] = tankController.tankinhalt_Aktuell.get();
-  doc["capacity"] = tankController.tankinhalt_ml.get();
-}
-
-void putTank(JsonDocument &doc) {
-  tankController.tankinhalt_ml.set(doc["capacity"], SetMode::flush);
-}
-
-void getSystem(JsonDocument &doc) {
-  String rev = Rev_OILER;
-  rev += ": ";
-  rev += firmware_Vers;
-  doc["rev"] = rev;
-  doc["init"] = (bool) Factory_init.get();
-}
-
-void getStates(JsonDocument &doc) {
-  doc["oiling"] = pumpController.isOiling();
-  doc["extraOiling"] = distanceController.extraOilen;
-  doc["emergency"] = !gpsController.gpsAvailable() && gpsController.gpsStarted();
-  doc["raining"] = rainController.isRaining();
-  doc["wifi"] = true; // ToDo:
-  doc["washing"] = pumpController.getSpuelen();
-  doc["distance"] = distanceController.Gefahrene_km.get();
-  doc["pumpDistance"] = distanceController.pumpDistanz.get();
-}
-
-void putStates(JsonDocument &doc) {
-  distanceController.extraOilen = doc["extraOiling"];
-  pumpController.setSpuelen(doc["washing"]);
-  distanceController.pumpDistanz.set(doc["pumpDistance"], SetMode::flush);
-}
-
-void getEmergency(JsonDocument &doc) {
-  doc["timeout"] = gpsController.zeit_bis_notbetrieb.get();
-  doc["speed"] = geschwindigkeit_Notbetrieb.get();
-}
-
-void putEmergency(JsonDocument &doc) {
-  gpsController.zeit_bis_notbetrieb.set(doc["timeout"], SetMode::flush);
-  geschwindigkeit_Notbetrieb.set(doc["speed"], SetMode::flush);
-}
-
-// Refill tank
-void putTankReset(JsonDocument &doc) {
-  tankController.reset();
-  distanceController.Gefahrene_km.set(0.0, SetMode::flush); // Reset km 
-}
-
-// Force system defaults during next startup
-void putSystemDefaults(JsonDocument &doc) {
-  if (doc["init"].is<JsonVariant>())
-    Factory_init.set(doc["init"], SetMode::flush);
-}
-
-JsonEndpoint getEndpoints[9] = {
-    JsonEndpoint("/api/system", getSystem),
-    JsonEndpoint("/api/display", getDisplay),
-    JsonEndpoint("/api/rain", getRain),
-    JsonEndpoint("/api/pump", getPump),
-    JsonEndpoint("/api/wifi", getWifi),
-    JsonEndpoint("/api/tank", getTank),
-    JsonEndpoint("/api/states", getStates),
-    JsonEndpoint("/api/emergency", getEmergency),
-    JsonEndpoint(nullptr, nullptr)
-};
-
-JsonEndpoint putEndpoints[10] = {
-    JsonEndpoint("/api/system/defaults", putSystemDefaults),
-    JsonEndpoint("/api/display", putDisplay),
-    JsonEndpoint("/api/rain", putRain),
-    JsonEndpoint("/api/pump", putPump),
-    JsonEndpoint("/api/wifi", putWifi),
-    JsonEndpoint("/api/tank", putTank),
-    JsonEndpoint("/api/tank/reset", putTankReset),
-    JsonEndpoint("/api/states", putStates),
-    JsonEndpoint("/api/emergency", putEmergency),
-    JsonEndpoint(nullptr, nullptr)
-};
 
 // Variable für die Seriellen Eingabe
 String serialInput = ""; // a String to hold incoming data
@@ -197,21 +116,21 @@ void wiFiOnOff(bool on) {
     Serial.println("Wifi OFF");
 }
 
+// setup the oiler scetch
+
 void setup()
 {
   delay(500); // wird auf dem c3 benötigt, wenn CDC eingeschaltet ist.
   Serial.begin(115200);
   delay(300);
-  while (!Serial) {
+  while (!Serial) { // Wait until serial output is available
     delay(10);
-  }
-  //ToDo: Check Wire.begin();
-  Serial.println("setup 01");
+  } 
 
-  Factory_init.restore();
-  if (Factory_init.get()>0)
-  { // flush all vars with initial values
-    Factory_init.set(0, SetMode::flush);
+  initFromPreferences.restore();
+  if (initFromPreferences.get()==0) // Default after flush of memory. May also be forced by web UI.
+  { // flush all vars with initial values of the userVars
+    initFromPreferences.set(610118, SetMode::flush);
     gpsController.flush();
     rainController.flush();
     distanceController.flush();
@@ -222,12 +141,10 @@ void setup()
     webController.flush();
     delay(1000);
     //ESP.restart(); // Reset wird durchgeführt
-    return;
   }
-  serialInput.reserve(200);
-  Serial.println("setup 02");
-  
-  webController.setup(getEndpoints, putEndpoints);
+
+  // setups are loading the userVars from the preference storage
+  webController.setup(getEndpoints(), putEndpoints());
   gpsController.setup();
   rainController.setup();
   distanceController.setup();
@@ -238,10 +155,6 @@ void setup()
 
   geschwindigkeit_Notbetrieb.restore();
 
-#ifdef HW_PINS_DEFINED
-  pinMode(WLAN_RESET_PIN, INPUT);
-  pinMode(TANK_RESET_PIN, INPUT);
-#endif
   delay(20);
 
   displayController.setTankPercent(tankController.fillGradeInPercent());
@@ -252,7 +165,6 @@ void setup()
 
   serialStatus();
 
-  pinMode(TANK_RESET_PIN, INPUT);
   pinMode(WLAN_RESET_PIN, INPUT);
 }
 static bool edgeSignalled = true;
@@ -329,7 +241,7 @@ void loop()
   }
 
   pumpController.loop(geschwindigkeit.get());    // process pump requests
-  displayController.loop(digitalRead(WLAN_RESET_PIN)==LOW); // update display
+  displayController.loop(digitalRead(WLAN_RESET_PIN)==LOW); // update display and input key handling
   webController.loop();     // process web requests
   prefs.AssertClosed();
 }
@@ -362,7 +274,7 @@ void evaluate(String input)
   
   if (input.startsWith("Set_Factory")||input.startsWith("EEPROM_init"))
   {
-    Factory_init.set(1, SetMode::flush);
+    initFromPreferences.set(0, SetMode::flush);
     prefs.AssertClosed();
     ESP.restart();
     return;
@@ -416,5 +328,149 @@ void serialStatus()
   rainController.rainMulti.status();
   geschwindigkeit.status();
   tankController.tankinhalt_Aktuell.status();
-  Factory_init.status();
+  initFromPreferences.status();
 }
+
+void getDisplay(JsonDocument &doc) {
+  doc["screen1"] = displayController.Start_disp_1.get();;
+  doc["screen2"] = displayController.Start_disp_2.get();
+  doc["oilSymbol"] = displayController.oilsymbol_Zeit.get();
+  doc["timeZone"] = displayController.timeZone.get();
+}
+
+void putDisplay(JsonDocument &doc) {
+  displayController.Start_disp_1.set(doc["screen1"], SetMode::flush);
+  displayController.Start_disp_2.set(doc["screen2"], SetMode::flush);
+  displayController.oilsymbol_Zeit.set(doc["oilSymbol"], SetMode::flush);
+  displayController.timeZone.set(doc["timeZone"], SetMode::flush);
+}
+
+void getRain(JsonDocument &doc) {
+  doc["onThreshold"] = rainController.sw_Regensensor_ein.get();;
+  doc["offThreshold"] = rainController.sw_Regensensor_aus.get();
+  doc["distanceMultiplier"] = rainController.rainMulti.get();
+  doc["afterRainOilingPulses"] = rainController.pump_nach_Regen.get();
+}
+
+void putRain(JsonDocument &doc) {
+  rainController.sw_Regensensor_ein.set( doc["onThreshold"], SetMode::flush);
+  rainController.sw_Regensensor_aus.set( doc["offThreshold"], SetMode::flush);
+  rainController.rainMulti.set( doc["distanceMultiplier"], SetMode::flush);
+  rainController.pump_nach_Regen.set( doc["afterRainOilingPulses"], SetMode::flush);
+}
+
+void getPump(JsonDocument &doc) {
+  doc["pulsesPerMl"] = tankController.pumps_ml.get();
+  doc["pulseOn"] = pumpController.zeit_pumpe_ein.get();
+  doc["pulseOff"] = pumpController.zeit_pumpe_pause.get();
+}
+
+void putPump(JsonDocument &doc) {
+  tankController.pumps_ml.set(doc["pulsesPerMl"], SetMode::flush);
+  pumpController.zeit_pumpe_ein.set( doc["pulseOn"] , SetMode::flush);
+  pumpController.zeit_pumpe_pause.set(doc["pulseOff"], SetMode::flush);
+}
+
+void getWifi(JsonDocument &doc) {
+  doc["name"] = webController.ssid_ap.get();
+  doc["password"] = webController.password_ap.get();
+  doc["timeout"] = webController.TimeAPout.get();
+}
+
+void putWifi(JsonDocument &doc) {
+  const char *str=doc["name"];
+  int len = strlen(str);
+  if (len > 0) 
+    webController.ssid_ap.set(str, SetMode::flush);
+  str=doc["password"];
+  webController.password_ap.set(str, SetMode::flush);
+  webController.TimeAPout.set(doc["timeout"], SetMode::flush);
+}
+
+void getTank(JsonDocument &doc) {
+  doc["content"] = tankController.tankinhalt_Aktuell.get();
+  doc["capacity"] = tankController.tankinhalt_ml.get();
+}
+
+void putTank(JsonDocument &doc) {
+  tankController.tankinhalt_ml.set(doc["capacity"], SetMode::flush);
+}
+
+void getSystem(JsonDocument &doc) {
+  String rev = Rev_OILER;
+  rev += ": ";
+  rev += firmware_Vers;
+  doc["rev"] = rev;
+  doc["init"] = (bool) initFromPreferences.get();
+}
+
+void getStates(JsonDocument &doc) {
+  doc["oiling"] = pumpController.isOiling();
+  doc["extraOiling"] = distanceController.extraOilen;
+  doc["emergency"] = !gpsController.gpsAvailable() && gpsController.gpsStarted();
+  doc["raining"] = rainController.isRaining();
+  doc["wifi"] = true; // ToDo:
+  doc["washing"] = pumpController.getSpuelen();
+  doc["distance"] = distanceController.Gefahrene_km.get();
+  doc["pumpDistance"] = distanceController.pumpDistanz.get();
+}
+
+void putStates(JsonDocument &doc) {
+  distanceController.extraOilen = doc["extraOiling"];
+  pumpController.setSpuelen(doc["washing"]);
+  distanceController.pumpDistanz.set(doc["pumpDistance"], SetMode::flush);
+}
+
+void getEmergency(JsonDocument &doc) {
+  doc["timeout"] = gpsController.zeit_bis_notbetrieb.get();
+  doc["speed"] = geschwindigkeit_Notbetrieb.get();
+}
+
+void putEmergency(JsonDocument &doc) {
+  gpsController.zeit_bis_notbetrieb.set(doc["timeout"], SetMode::flush);
+  geschwindigkeit_Notbetrieb.set(doc["speed"], SetMode::flush);
+}
+
+// Refill tank
+void putTankReset(JsonDocument &doc) {
+  tankController.reset();
+  distanceController.Gefahrene_km.set(0.0, SetMode::flush); // Reset km 
+}
+
+// Force system defaults during next startup
+void putSystemDefaults(JsonDocument &doc) {
+  if (doc["init"].is<JsonVariant>())
+    initFromPreferences.set(doc["init"], SetMode::flush); // need 0 value to force reinitialization
+}
+
+JsonEndpoint *getEndpoints() {
+  static JsonEndpoint ep[9] = {
+    JsonEndpoint("/api/system", getSystem),
+    JsonEndpoint("/api/display", getDisplay),
+    JsonEndpoint("/api/rain", getRain),
+    JsonEndpoint("/api/pump", getPump),
+    JsonEndpoint("/api/wifi", getWifi),
+    JsonEndpoint("/api/tank", getTank),
+    JsonEndpoint("/api/states", getStates),
+    JsonEndpoint("/api/emergency", getEmergency),
+    JsonEndpoint(nullptr, nullptr)
+  };
+  return ep;
+};
+
+JsonEndpoint *putEndpoints() {
+  static JsonEndpoint ep[10] = {
+    JsonEndpoint("/api/system/defaults", putSystemDefaults),
+    JsonEndpoint("/api/display", putDisplay),
+    JsonEndpoint("/api/rain", putRain),
+    JsonEndpoint("/api/pump", putPump),
+    JsonEndpoint("/api/wifi", putWifi),
+    JsonEndpoint("/api/tank", putTank),
+    JsonEndpoint("/api/tank/reset", putTankReset),
+    JsonEndpoint("/api/states", putStates),
+    JsonEndpoint("/api/emergency", putEmergency),
+    JsonEndpoint(nullptr, nullptr)
+  };
+  return ep;
+};
+#endif

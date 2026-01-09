@@ -5,9 +5,9 @@
 typedef const char* PrefKey;
 
 namespace PrefKeys {
-  extern PrefKey Noeeprom;
-  extern PrefKey Factory_init;
-  extern PrefKey anzahl_Pump;                 // Adresse für Pumpanzahl
+  extern PrefKey Noeeprom;                    // don't store to preferences
+  extern PrefKey init_from_preferences;      // if != 0, the preferences can be used for initialization
+  extern PrefKey anzahl_Pump;                // Adresse für Pumpanzahl
   extern PrefKey tankinhalt_ml;              //
   extern PrefKey pumps_ml;                   //
   extern PrefKey tankinhalt_ml_akt;          //
