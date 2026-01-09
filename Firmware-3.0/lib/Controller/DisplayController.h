@@ -6,10 +6,13 @@
 #include "Timer.h"
 #include "userVar.h"
 #include "gpsController.h"
-#include "Screens.h"
+#include "ScreenBase.h"
+#include "QrScreen.h"
+#include "ActionScreen.h"
+#include "DefaultScreen.h"
 
 // detects falling edges of a button. Returns the time, the button has been pressed
-// while button is pressed, 
+// while pressed. 
 class ButtonHandler {
     unsigned long risingEdge = 0;
     unsigned long fallingEdge = 0;

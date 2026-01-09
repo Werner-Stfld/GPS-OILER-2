@@ -11,29 +11,25 @@ void DisplayController::setup() {
     restore();
 
     Serial.println("init");
-    display.initR(INITR_BLACKTAB);
-    // display.setSPISpeed(40000000);
-    display.setCursor(0,0);
+    tft.init(INITR_GREENTAB2);
 
     Serial.println("setRotation");
-    display.setRotation(3);
-    Serial.println("setTextColor");
-    display.setTextColor(ST77XX_BLACK, ST77XX_WHITE); 
-    Serial.println("setTextFont");
-    display.fillScreen(ST77XX_BLUE);
-    display.setTextColor(ST77XX_WHITE, ST77XX_BLACK);
-    display.setTextSize(1);
-    display.println("Hello World");
+    tft.setRotation(3);
     // display.setFont(4); 
-    // currentScreen->setup();
+   tft.fillScreen(TFT_GREEN);
+   spr.createSprite(TFT_HEIGHT, TFT_WIDTH);  // Vollbild-Sprite
+   currentScreen = &defaultScreen;
+   currentScreen->setup();
 }
 
 DisplayController::DisplayController(): currentScreen(&defaultScreen) {  // Pins des displays sind in platformio.ini definiert.
-
+    // Create ist of variable containers for variable handling
     add(&Start_disp_1);
     add(&Start_disp_2);
     add(&defaultScreen.oilsymbol_Zeit);
     add(&defaultScreen.timeZone);
+
+    // setup screen chain
     defaultScreen.next = &resetTankScreen;
     resetTankScreen.next = &wifiQrScreen;
     wifiQrScreen.next = &webQrScreen;
@@ -52,7 +48,6 @@ ButtonState GetButtonState (unsigned long fallingEdge) {
     return ButtonState::none;
 }
 
-unsigned int i = 0;
 void DisplayController::loop(bool pressed)
 {
     buttonHandler.loop(pressed);
