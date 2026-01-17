@@ -200,25 +200,18 @@ void loop()
   gpsController.loop();
   rainController.loop();
   voltageController.loop();
-
+  float oilingSpeed = 0.0;
   if (secondTimer.timedOut())
   {
-    uint sattelites;
-    float speed;
-    uint direction;
-    gpsTime time;
-    int alt;
-
-    bool gpsAvailable = gpsController.read(sattelites, speed, direction, time, alt);
-    geschwindigkeit.set(speed);
-    float oilingSpeed = speed; // oilingSpeed: speed to evaluate distance for oiling
-    if (!gpsAvailable && gpsController.gpsStarted())
-      oilingSpeed = geschwindigkeit_Notbetrieb.get(); // if no gps available after startup => use emergency speed
-    oilingSpeed = rainController.getSpeed(oilingSpeed);
-    distanceController.update(oilingSpeed, speed);
+    geschwindigkeit.set(gpsController.speed());
+    oilingSpeed = gpsController.speed(); // oilingSpeed: speed to evaluate distance for oiling
+    oilingSpeed = gpsController.emergency()? geschwindigkeit_Notbetrieb.get(): // if no gps available after startup => use emergency speed
+                                             gpsController.speed(); 
+    oilingSpeed = rainController.getSpeed(oilingSpeed); 
+    distanceController.update(oilingSpeed, gpsController.speed());
     pumpController.RequestPulses(distanceController.pulses() + rainController.pulses()); // pass requested pulses to pumpController
 
-    if (minuteTimer.timedOut() || standStillEdgeDetected(gpsAvailable, speed)) { 
+    if (minuteTimer.timedOut() || standStillEdgeDetected(!gpsController.emergency(), gpsController.speed())) { 
       // Flush automatically changing values once per minute or when gps is active indicating speed less then 2 km/h
       distanceController.Gefahrene_km.flush();
       tankController.tankinhalt_Aktuell.flush();
@@ -228,20 +221,20 @@ void loop()
     }
 
     // update display data
-    displayController.setShowSattelite(gpsAvailable);
+    displayController.setShowSattelite(!gpsController.emergency());
     displayController.setShowRaining(rainController.isRaining());
-    displayController.setDirection(direction);
-    displayController.setNoSattelite(sattelites);
-    displayController.setSpeed(speed);
+    displayController.setDirection(gpsController.course());
+    displayController.setNoSattelite(gpsController.sattelites());
+    displayController.setSpeed(gpsController.speed());
     displayController.setDistance(distanceController.Gefahrene_km.get());
-    displayController.setTime(time);
-    displayController.setAlt(alt);
+    displayController.setTime(gpsController.time());
+    displayController.setAlt(gpsController.altitude());
     displayController.setTankPercent(tankController.fillGradeInPercent());
     displayController.setOilingDistanceInPercent(distanceController.oilingDistanceInPercent());
     displayController.setBatteryVoltage(voltageController.voltage());
   }
 
-  pumpController.loop(geschwindigkeit.get());    // process pump requests
+  pumpController.loop(oilingSpeed);    // process pump requests
   displayController.loop(digitalRead(WLAN_RESET_PIN)==LOW); // update display and input key handling
   webController.loop();     // process web requests
   prefs.AssertClosed();
@@ -408,7 +401,7 @@ void getSystem(JsonDocument &doc) {
 void getStates(JsonDocument &doc) {
   doc["oiling"] = pumpController.isOiling();
   doc["extraOiling"] = distanceController.extraOilen;
-  doc["emergency"] = !gpsController.gpsAvailable() && gpsController.gpsStarted();
+  doc["emergency"] = gpsController.emergency();
   doc["raining"] = rainController.isRaining();
   doc["wifi"] = true; // ToDo:
   doc["washing"] = pumpController.getSpuelen();

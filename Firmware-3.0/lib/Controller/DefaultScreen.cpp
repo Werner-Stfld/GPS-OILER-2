@@ -25,16 +25,6 @@ void DefaultScreen::loop(ScreenArgs &args) {
             updateRequired = true;
         showOiling=false; // remove oilcan
     }
-    if (showSattelite)
-    {
-        if (!showSpeed) updateRequired = true;
-            showSpeed = true;
-    } else {
-        if (speedToggleTimeout.timedOut()) {
-            showSpeed = !showSpeed; // toggle visibiliy if no sattelite 
-            updateRequired = true;
-        }
-    }
     if (!displayTimeout.timedOut()) 
         return;
     if (!updateRequired)
@@ -42,7 +32,7 @@ void DefaultScreen::loop(ScreenArgs &args) {
     updateRequired = false;
 
     spr.fillRect(0,0,TFT_HEIGHT, TFT_WIDTH, TFT_WHITE);
-    if (showSpeed) displaySpeed();
+    displaySpeed();
 
     displayDirection();
     displayTime();
@@ -121,8 +111,8 @@ void DefaultScreen::displayAlt()
     spr.setTextSize (1);
     spr.setTextFont(4);
     int16_t w = spr.textWidth(tmp);
-    spr.drawString(tmp, 70 - w,75);
-    spr.drawRoundRect(1, 74, 72, 24, 4, TFT_BLACK);
+    spr.drawString(tmp, 70 - w,73);
+    spr.drawRoundRect(1, 72, 72, 24, 4, TFT_BLACK);
 }
 
 void DefaultScreen::displayNoSattelite()
@@ -140,12 +130,13 @@ void DefaultScreen::displayNoSattelite()
 
 void DefaultScreen::displayOiling()
 {
+    int h = 39;
     if (showOiling) {
         spr.drawBitmap(3, 6, iconOilcan(), 16, 16, TFT_BLACK);
     } else  {
-        spr.drawRect(1, 1, 20, 37, TFT_BLACK);
-        int h = 39*oilingDistanceInPercent/100;
-        spr.fillRect(1, 1+h, 20, 39-h, TFT_BLACK);
+        spr.drawRect(1, 1, 20, h, TFT_BLACK);
+        int p = h*oilingDistanceInPercent/100;
+        spr.fillRect(1, 1+p, 20, h-p, TFT_BLACK);
     }
 }
 
@@ -186,13 +177,8 @@ void DefaultScreen::displayCompass() {
     static Complex s = Complex(0,-100)*scale;;
 
     spr.fillCircle(center.real(), center.imag(), radius + 2, TFT_DARKGREY);
-    // spr.drawCircle(center.real(), center.imag(), radius + 1, TFT_BLACK);
     spr.drawCircle(center.real(), center.imag(), radius + 2, TFT_BLACK);
     drawScale(center.real(), center.imag(), radius);
-    // spr.drawFastHLine(center.real()-radius, center.imag(), 2*radius, TFT_BLACK);
-    // spr.drawFastVLine(center.real(), center.imag()-radius, 2*radius, TFT_BLACK);
-    if (!showSattelite)
-        return; // show direction only if sattelite present
     float rad = -PI*2*(direction+180)/360; 
     Complex rot;
     rot.polar(1, rad);
@@ -204,6 +190,10 @@ void DefaultScreen::displayCompass() {
     spr.fillTriangle(_s.real(), _s.imag(), _w.real(), _w.imag(), _e.real(), _e.imag(), TFT_GREEN);
     spr.drawTriangle(_n.real(), _n.imag(), _w.real(), _w.imag(), _e.real(), _e.imag(), TFT_BLACK);
     spr.drawTriangle(_s.real(), _s.imag(), _w.real(), _w.imag(), _e.real(), _e.imag(), TFT_BLACK);
+    spr.drawCircle(center.real(), center.imag(), 9, TFT_BLACK);
+    spr.fillCircle(center.real(), center.imag(), 8, TFT_DARKGREY);
+    spr.fillCircle(center.real(), center.imag(), 4, TFT_BLACK);
+
 }
 
 void DefaultScreen::displayDirectionOnMap() {

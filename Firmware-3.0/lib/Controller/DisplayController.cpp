@@ -5,7 +5,7 @@
 #include "DisplayController.h"
 #include "icons.h"
 
-unsigned long actionTimeout = 3000;
+unsigned long actionTimeout = 2000;
 
 void DisplayController::setup() {
     restore();

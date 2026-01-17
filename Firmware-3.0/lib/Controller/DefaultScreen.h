@@ -17,7 +17,6 @@ class DefaultScreen : public ScreenBase {
     void drawScale(int cx, int cy, int r);
     public:
     bool showRaining = false;
-    bool showSpeed = false;
     bool showSattelite = 0;
     int distance = 0;
     float speed = 0;

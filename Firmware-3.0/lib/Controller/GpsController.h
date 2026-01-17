@@ -14,91 +14,43 @@ class GpsController: public VarContainer {
   HardwareSerial gpsSerial;
   int rxPin;
   uint rxBaudrate;
-  unsigned long tmo;                // waiting to complete initialization
-  bool _gpsStarted = false;
+
+  Timer emergencyTimer = Timer(0);                // timer to delay emergency state
+  Timer updateTimer = Timer(0);                // timer to poll gps
+
+  bool _emergency = false;
+  uint _sattelites;
+  float _speed;
+  uint _course;
+  gpsTime _time;
+  int _alt;
+
   public:
   IntVar zeit_bis_notbetrieb = IntVar(String("Zeit bis Notbetrieb:"), 180, PrefKeys::zeit_bis_notbetrieb);       // Zeit bis Notbetrieb in Sekunden
 
-  bool gpsStarted() {
-    return _gpsStarted;
-  }
-  bool gpsAvailable() {
-    return gps.speed.isValid() && gps.course.isValid() && gps.satellites.isValid() && gps.satellites.value()>=3;
+  bool emergency() {
+    return _emergency;
   }
 
-  int state = 0;
-  int aSpeed[10] = {0,5,60,90,120,150,180,210,240,270};
-  int aCourse[10] = {0,5,60,90,120,150,180,210,240,270};
-  int aAlt[10] = {-5, 0, 123, 234, 850, 1254, 2589, 3456, 6543, 8167};
-  bool emulatedRead(uint &vSattelites, float &vSpeed, uint &vCourse, gpsTime &vTime, int &vAlt) {
-    if (state < 5) {
-      vSattelites=4;
-      vSpeed=aSpeed[state];
-      vCourse=aCourse[state];
-      vAlt=aAlt[state];
-      vTime=gpsTime{9,5,13};;
-      state++;
-      return true;
-    }
-    vSattelites=5;
-    vSpeed=aSpeed[state];
-    vCourse=aCourse[state];
-    vAlt=aAlt[state];
-    vTime=gpsTime{21,31,59};;
-    state++;
-    if (state >=10) state = 0;
-    return true;
+  bool speed() {
+    return _speed;
   }
 
-  const bool gpsEmulation = true;
-  bool read(uint &vSattelites, float &vSpeed, uint &vCourse, gpsTime &vTime, int &vAlt) {
-    if (gpsEmulation) {
-      return emulatedRead(vSattelites, vSpeed, vCourse, vTime, vAlt);
-    }
-    vSattelites=0;
-    vSpeed=0;
-    vCourse=0;
-    vTime=gpsTime{0,0,0};
-
-    if (!gps.speed.isValid())
-      return false;
-    if (gps.speed.age() > 10000)
-      return false; // More than 10 seconds no update
-    vSpeed = gps.speed.kmph();
-    if (vSpeed < 2) // don't flicker if too slow
-      vSpeed = 0;
-    if (!gps.altitude.isValid())
-      return false;
-    vAlt = gps.altitude.meters();
-    if (!gps.course.isValid())
-      return false;
-    vCourse = gps.course.deg();
-    if (vCourse < 0 || vCourse >359)
-      vCourse = unifyCourse(vCourse);
-    if (!gps.satellites.isValid())
-      return false;
-    vSattelites = gps.satellites.value();
-    if (vSattelites >= 3) 
-      _gpsStarted = true;
-    if (gps.time.isValid()) {
-      vTime.hour = gps.time.hour();
-      vTime.minute = gps.time.minute();
-      vTime.second = gps.time.second();
-    } 
-    return vSattelites >= 3;
+  int altitude() {
+    return _alt;
   }
 
-  static double unifyCourse (double v) {
-    bool negative = v < 0;        // v: -410 => negative = true;
-    if (negative)
-      v = -v;                     // v = 410;
-    int multipleOf360 = v/360;    // => 1;
-    v = v - 360 * multipleOf360;  // v = 50;
-    if (negative) 
-      v = 360 - v;                // 310;
-    return v;
+  uint course() {
+    return _course;
   }
-  
+  gpsTime time() {
+    return _time;
+  }
+
+  uint sattelites() {
+    return _sattelites;
+  }
+
   GpsController(int _rxPin, uint baudrate): gpsSerial(Serial1) {
     rxBaudrate = baudrate;
     rxPin = _rxPin;
@@ -108,18 +60,108 @@ class GpsController: public VarContainer {
   void setup() {
     restore();
     gpsSerial.begin(rxBaudrate, SERIAL_8N1, rxPin);
-    _gpsStarted = false;
-    tmo = millis() + zeit_bis_notbetrieb.get() * 1000; // 180 Sekunden bis Init abgeschlossen sein sollte.
+    _sattelites = 0;
+    _speed = 0.0;
+    _course = 0;
+    _time = gpsTime{0,0,0};
+    _alt = 0;
+    _emergency = false;
+    emergencyTimer = Timer(zeit_bis_notbetrieb.get() * 1000);
+    updateTimer = Timer(500);
   }
+
+  const bool gpsEmulation = false;
 
   void loop() {
 
     while (gpsSerial.available() > 0) {
       gps.encode(gpsSerial.read());
     }
-    if (_gpsStarted) 
-      return;
-    if (millis() > tmo)
-      _gpsStarted = true;
+
+    if (updateTimer.timedOut()) {
+      if (gpsEmulation) {
+        emulatedRead ();
+        return;
+      }
+      if (gps.speed.isValid() && gps.satellites.isValid() && gps.satellites.value()>=3) {
+
+    #if false
+        Serial.println("GPS");
+        Serial.println(gps.charsProcessed());
+        Serial.print("sattelites.isValid: ");
+        Serial.println(gps.satellites.isValid());
+        Serial.print("sattelites: ");
+        Serial.println(gps.satellites.value());
+    #endif
+        _speed = gps.speed.kmph();
+        if (_speed < 2) // don't flicker if too slow
+          _speed = 0;  
+
+        if (gps.altitude.isValid()) 
+          _alt = gps.altitude.meters();
+
+        if (gps.course.isValid()) {
+          _course = unifyCourse(gps.course.deg());
+        }
+
+        _sattelites = gps.satellites.value();
+        if (gps.time.isValid()) {
+          _time.hour = gps.time.hour();
+          _time.minute = gps.time.minute();
+          _time.second = gps.time.second();
+        } 
+        _emergency = false;
+        // retrigger emergency timer
+        emergencyTimer.nextTimeout(zeit_bis_notbetrieb.get() * 1000);
+        return;
+      } 
+    }
+    if (emergencyTimer.timedOut()) {
+      _emergency = true;
+      _sattelites = 0;
+      _speed = 0.0;
+      _course = 0;
+      _time = gpsTime{0,0,0};
+      _alt = 0;
+    }
+  }
+
+  int state = 0;
+  int aSpeed[10] = {0,5,60,90,120,150,180,210,240,270};
+  int aCourse[10] = {0,5,60,90,120,150,180,210,240,270};
+  int aAlt[10] = {-5, 0, 123, 234, 850, 1254, 2589, 3456, 6543, 8167};
+  bool emulatedRead() {
+    if (state < 5) {
+      _emergency = false;
+      _sattelites = 4;
+      _speed = aSpeed[state];
+      _course = aCourse[state];
+      _time = gpsTime{9,5,13};
+      _alt = aAlt[state];
+      state++;
+      return true;
+    }
+    _sattelites=5;
+    _speed=aSpeed[state];
+    _course=aCourse[state];
+    _alt=aAlt[state];
+    _time=gpsTime{21,31,59};;
+    state++;
+    if (state >=10) state = 0;
+    return true;
+  }
+
+  static double unifyCourse (double v) {
+    if (v >= 0 || v < 360)
+      return v;
+
+    bool negative = v < 0;        // v: -410 => negative = true;
+    if (negative)
+      v = -v;                     // v = 410;
+    int multipleOf360 = v/360;    // => 1;
+    v = v - 360 * multipleOf360;  // v = 50;
+    if (negative) 
+      v = 360 - v;                // 310;
+    return v;
   }
 };
