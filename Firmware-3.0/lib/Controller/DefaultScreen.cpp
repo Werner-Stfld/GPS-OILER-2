@@ -7,38 +7,13 @@
 #include "DisplayController.h"
 #include "icons.h"
 
-const char *dirShortcuts[8] = {"N", "NO", "O", "SO", "S", "SW", "W", "NW"};
-// get direction shortcut from degrees between 0 and 359
-const char *directionShortcut(int degree)
-{
-    degree += 22; // 0 .. 359 => 22 -- 381
-    degree = degree / 45;
-    if (degree > 7)
-        return "*";
-    return dirShortcuts[degree];
-}
-
-bool toggleTankDisplay = false;
-void DefaultScreen::displayTank()
-{
-    if (tankPercent < 15) {
-        toggleTankDisplay = !toggleTankDisplay;
-    } else {
-        toggleTankDisplay = false;
-    }
-    if (toggleTankDisplay) {
-        spr.fillRect(1, 53, 75, 10, TFT_BLACK);    // Draws full bar
-        return;
-    } 
-    spr.drawRect(1, 53, 75, 10, TFT_BLACK);        // Border of the bar chart
-    byte v = map(tankPercent, 0, 100, 0, 75); // map percent to rect length
-    spr.fillRect(1, 53, v, 10, TFT_BLACK);      // Draws the bar depending on the sensor value
-}
-
 void DefaultScreen::setup() {
+    Serial.println("DefaultScreen::setup()");
+
     spr.setTextWrap(false);            // By default, long lines of text are set to automatically “wrap” back to the leftmost column.
-    spr.setTextColor(TFT_BLACK, TFT_WHITE); 
-    spr.setTextFont(4);
+    spr.setTextColor(TFT_BLACK);
+    spr.setTextSize (1);
+    spr.setTextFont(6);
 }
 
 void DefaultScreen::loop(ScreenArgs &args) {
@@ -55,8 +30,10 @@ void DefaultScreen::loop(ScreenArgs &args) {
         if (!showSpeed) updateRequired = true;
             showSpeed = true;
     } else {
-        showSpeed = !showSpeed; // toggle visibiliy if no sattelite 
-        updateRequired = true;
+        if (speedToggleTimeout.timedOut()) {
+            showSpeed = !showSpeed; // toggle visibiliy if no sattelite 
+            updateRequired = true;
+        }
     }
     if (!displayTimeout.timedOut()) 
         return;
@@ -64,48 +41,47 @@ void DefaultScreen::loop(ScreenArgs &args) {
         return;
     updateRequired = false;
 
-    spr.fillRect(0,0,TFT_HEIGHT, TFT_WIDTH, TFT_RED);
-    spr.drawRoundRect(1, 27, 75, 25, 4, TFT_BLACK);  // Rahmen für die Zeit
-    spr.drawRoundRect(79, 1, 48, 24, 4, TFT_BLACK);  // Rahmen für die Geschwindigkeit
-    spr.fillRoundRect(1, 27, 75, 25, 4, TFT_WHITE);  // Rahmen für die Zeit
-    spr.drawRoundRect(1, 27, 75, 25, 4, TFT_BLACK);  // Rahmen für die Zeit
-    spr.fillSmoothCircle(100, 70, 50, TFT_GREEN, TFT_RED);
-    spr.drawSpot(70,50,60, TFT_BLACK, TFT_BLACK);
-    spr.drawSpot(70,50,56, TFT_BLUE, TFT_BLUE);
-#if false
+    spr.fillRect(0,0,TFT_HEIGHT, TFT_WIDTH, TFT_WHITE);
     if (showSpeed) displaySpeed();
 
     displayDirection();
     displayTime();
+    displayAlt();
     displayTank();
     displayNoSattelite();
     displayOiling();
-    if (showRaining) spr.drawBitmap(20, 6, iconRaining(), 16, 16, TFT_BLACK);
-#endif
+    if (showRaining) spr.drawBitmap(30, 6, iconRaining(), 16, 16, TFT_BLACK);
     spr.pushSprite(0,0);
 }
 
 void DefaultScreen::displaySpeed()
 {
     char tmp[10];
-#if true
     dtostrf(speed, 3, 0, tmp);
-    spr.setCursor(83, 20);
-    spr.println(tmp);
-#else
-    dtostrf(batteryVoltage, 3, 1, tmp);
-    spr.setCursor(83, 20);
-    spr.println(tmp);
-
-#endif
+    spr.setTextSize (1);
+    spr.setTextFont(6);
+    spr.setTextColor(TFT_RED);
+    int16_t w = spr.textWidth(tmp);
+    spr.drawString(tmp, 158-w, 2);
+    spr.drawRoundRect(73, 1, 160-74, 40, 4, TFT_BLACK);  // Rahmen für die Geschwindigkeit
+    spr.setTextColor(TFT_BLACK);
 }
 
-void DefaultScreen::displayDistance()
+bool toggleTankDisplay = false;
+void DefaultScreen::displayTank()
 {
-    char tmp[10];
-    dtostrf(distance, 5, 0, tmp);
-    spr.setCursor(5, 46);
-    spr.println(tmp);
+    if (tankPercent < 15) {
+        toggleTankDisplay = !toggleTankDisplay;
+    } else {
+        toggleTankDisplay = false;
+    }
+    if (toggleTankDisplay) {
+        spr.fillRect(1, 100, 72, 26, TFT_BLUE);    // Draws full bar in RED
+        return;
+    } 
+    spr.drawRect(1, 100, 72, 26, TFT_BLACK);        // Border of the bar chart
+    byte v = map(tankPercent, 0, 100, 0, 75); // map percent to rect length
+    spr.fillRect(1, 100, v, 26, TFT_BLACK);      // Draws the bar depending on the sensor value
 }
 
 void DefaultScreen::displayTime()
@@ -129,19 +105,35 @@ void DefaultScreen::displayTime()
     } else {
         itoa(time.minute, tmp + 3, 10);
     }
-    spr.setCursor(5, 46);
+    spr.setCursor(6, 46);
+    spr.setTextSize (1);
+    spr.setTextFont(4);
     spr.println(tmp);
+    spr.drawRoundRect(1, 45, 72, 23, 4, TFT_BLACK);  // Rahmen für die Zeit
+}
+
+void DefaultScreen::displayAlt()
+{
+    if (!showSattelite)
+        return;
+    char tmp[10];
+    itoa(alt, tmp, 10);
+    spr.setTextSize (1);
+    spr.setTextFont(4);
+    int16_t w = spr.textWidth(tmp);
+    spr.drawString(tmp, 70 - w,75);
+    spr.drawRoundRect(1, 74, 72, 24, 4, TFT_BLACK);
 }
 
 void DefaultScreen::displayNoSattelite()
 {
     for (int i = 0; i < 6;i++) {
-        int h=2 + i*4;
+        int h=4 + i*7;
         if (i < (noSattelite - 2)) {
-            spr.fillRect (44 + i*5, 25 - h, 4, h, TFT_BLACK);
+            spr.fillRect (42 + i*5, 41 - h, 4, h, TFT_BLACK);
         } else {
-            spr.fillRect (44 + i*5, 25 - h, 4, h, TFT_WHITE);
-            spr.drawRect (44 + i*5, 25 - h, 4, h, TFT_BLACK);
+            spr.fillRect (42 + i*5, 41 - h, 4, h, TFT_WHITE);
+            spr.drawRect (42 + i*5, 41 - h, 4, h, TFT_BLACK);
         }
     }
 }
@@ -149,11 +141,11 @@ void DefaultScreen::displayNoSattelite()
 void DefaultScreen::displayOiling()
 {
     if (showOiling) {
-        spr.drawBitmap(1, 6, iconOilcan(), 16, 16, 1);
+        spr.drawBitmap(3, 6, iconOilcan(), 16, 16, TFT_BLACK);
     } else  {
-        spr.drawRect(1, 2, 16, 22, TFT_BLACK);
-        int h = 22*oilingDistanceInPercent/100;
-        spr.fillRect(1, 3+h, 16, 22-h, TFT_BLACK);
+        spr.drawRect(1, 1, 20, 37, TFT_BLACK);
+        int h = 39*oilingDistanceInPercent/100;
+        spr.fillRect(1, 1+h, 20, 39-h, TFT_BLACK);
     }
 }
 
@@ -161,8 +153,58 @@ void DefaultScreen::displayDirection() {
     displayCompass();
 }
 
-float scale = 16/(float)100;
-Complex center = Complex(103,44);
+int radius = 40;
+float scale = radius/(float)100;
+Complex center = Complex(116,84);
+
+#include <TFT_eSPI.h>
+#include <math.h>
+
+TFT_eSPI tft = TFT_eSPI();
+
+void DefaultScreen::drawScale(int cx, int cy, int r) {
+    float gradRadient = 2 * PI/360;
+    for (int angle = 0; angle < 360; angle += 5) {
+        float rad = angle * gradRadient;
+        float cosr = cos(rad);
+        float sinr = sin(rad);
+        
+        int x1 = cx + cosr * r;
+        int y1 = cy + sinr * r;
+        int l = r - (angle % 30 == 0 ? 12 : 6);
+        int x2 = cx + cosr * l;
+        int y2 = cy + sinr * l;
+
+        spr.drawLine(x1, y1, x2, y2, TFT_BLACK);
+    }
+}
+
+void DefaultScreen::displayCompass() {
+    static Complex n = Complex(0,100)*scale;
+    static Complex e = Complex(30,0)*scale;
+    static Complex w = Complex(-30,0)*scale;;
+    static Complex s = Complex(0,-100)*scale;;
+
+    spr.fillCircle(center.real(), center.imag(), radius + 2, TFT_DARKGREY);
+    // spr.drawCircle(center.real(), center.imag(), radius + 1, TFT_BLACK);
+    spr.drawCircle(center.real(), center.imag(), radius + 2, TFT_BLACK);
+    drawScale(center.real(), center.imag(), radius);
+    // spr.drawFastHLine(center.real()-radius, center.imag(), 2*radius, TFT_BLACK);
+    // spr.drawFastVLine(center.real(), center.imag()-radius, 2*radius, TFT_BLACK);
+    if (!showSattelite)
+        return; // show direction only if sattelite present
+    float rad = -PI*2*(direction+180)/360; 
+    Complex rot;
+    rot.polar(1, rad);
+    Complex _n = center + n*rot;
+    Complex _e = center + e*rot;
+    Complex _w = center + w*rot;
+    Complex _s = center + s*rot;
+    spr.fillTriangle(_n.real(), _n.imag(), _w.real(), _w.imag(), _e.real(), _e.imag(), TFT_BLUE);
+    spr.fillTriangle(_s.real(), _s.imag(), _w.real(), _w.imag(), _e.real(), _e.imag(), TFT_GREEN);
+    spr.drawTriangle(_n.real(), _n.imag(), _w.real(), _w.imag(), _e.real(), _e.imag(), TFT_BLACK);
+    spr.drawTriangle(_s.real(), _s.imag(), _w.real(), _w.imag(), _e.real(), _e.imag(), TFT_BLACK);
+}
 
 void DefaultScreen::displayDirectionOnMap() {
     static Complex o = Complex(0,100)*scale;
@@ -170,8 +212,9 @@ void DefaultScreen::displayDirectionOnMap() {
     static Complex m = Complex(0,-40)*scale;;
     static Complex ur = Complex(70,-70)*scale;;
 
-    spr.drawCircle(center.real(), center.imag(), 17, TFT_BLACK);
-    spr.drawCircle(center.real(), center.imag(), 18, TFT_BLACK);
+    spr.fillCircle(center.real(), center.imag(), 38, TFT_LIGHTGREY);
+    spr.drawCircle(center.real(), center.imag(), 36, TFT_BLACK);
+    spr.drawCircle(center.real(), center.imag(), 37, TFT_BLACK);
     if (!showSattelite)
         return; // show direction only if sattelite present
     float rad = PI*2*(direction+180)/360; 
@@ -182,28 +225,7 @@ void DefaultScreen::displayDirectionOnMap() {
     Complex _m = center + m*rot;
     Complex _ur = center + ur*rot;
     spr.fillTriangle(_o.real(), _o.imag(), _ul.real(), _ul.imag(), _m.real(), _m.imag(), TFT_BLACK);
-    spr.fillTriangle(_o.real(), _o.imag(), _ur.real(), _ur.imag(), _m.real(), _m.imag(), TFT_BLACK);
-}
-
-void DefaultScreen::displayCompass() {
-    static Complex n = Complex(0,100)*scale;
-    static Complex e = Complex(30,0)*scale;
-    static Complex w = Complex(-30,0)*scale;;
-    static Complex s = Complex(0,-100)*scale;;
-
-    spr.drawCircle(center.real(), center.imag(), 17, TFT_BLACK);
-    spr.drawCircle(center.real(), center.imag(), 18, TFT_BLACK);
-    if (!showSattelite)
-        return; // show direction only if sattelite present
-    float rad = -PI*2*(direction+180)/360; 
-    Complex rot;
-    rot.polar(1, rad);
-    Complex _n = center + n*rot;
-    Complex _e = center + e*rot;
-    Complex _w = center + w*rot;
-    Complex _s = center + s*rot;
-    spr.fillTriangle(_n.real(), _n.imag(), _w.real(), _w.imag(), _e.real(), _e.imag(), TFT_BLACK);
-    spr.drawTriangle(_s.real(), _s.imag(), _w.real(), _w.imag(), _e.real(), _e.imag(), TFT_BLACK);
+    spr.fillTriangle(_o.real(), _o.imag(), _ur.real(), _ur.imag(), _m.real(), _m.imag(), TFT_BLUE);
 }
 
 void DefaultScreen::triggerShowOiling() {

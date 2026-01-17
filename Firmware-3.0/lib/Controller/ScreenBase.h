@@ -3,8 +3,6 @@
 #include "Timer.h"
 #include <TFT_eSPI.h>
 
-const boolean invert_Display = true; // Display Invertieren oder nicht
-
 void doNothing();
 
 class ScreenBase;
@@ -54,6 +52,6 @@ public:
     bool updateRequired;
     void (*execute)();
     ScreenBase *next;
-    Timer displayTimeout = Timer(300);
+    Timer displayTimeout = Timer(100);
 
 };

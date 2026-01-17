@@ -21,7 +21,7 @@
 // ---- Frei wählbare Pins ----
 #define TFT_CS   5
 #define TFT_DC   10
-#define TFT_RST  -1
+#define TFT_RST  21
 
 // ---- SPI-Geschwindigkeit ----
 #define SPI_FREQUENCY  40000000

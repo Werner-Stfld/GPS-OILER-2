@@ -10,13 +10,12 @@ unsigned long actionTimeout = 3000;
 void DisplayController::setup() {
     restore();
 
-    Serial.println("init");
     tft.init(INITR_GREENTAB2);
-
-    Serial.println("setRotation");
-    tft.setRotation(3);
+    // tft.writecommand(0x01); // Software reset 
+    delay(150);
+    tft.setRotation(1);
     // display.setFont(4); 
-   tft.fillScreen(TFT_GREEN);
+   tft.fillScreen(TFT_WHITE);
    spr.createSprite(TFT_HEIGHT, TFT_WIDTH);  // Vollbild-Sprite
    currentScreen = &defaultScreen;
    currentScreen->setup();

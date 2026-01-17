@@ -8,13 +8,13 @@ class DefaultScreen : public ScreenBase {
     void displaySpeed();
     void displayDirection();
     void displayTime();
+    void displayAlt();
     void displayTank();
     void displayNoSattelite();
     void displayOiling();
     void displayCompass();        // compass needle filled triangle toward north
     void displayDirectionOnMap(); // direction as arrow on a map
-    void displayDistance();
-
+    void drawScale(int cx, int cy, int r);
     public:
     bool showRaining = false;
     bool showSpeed = false;
@@ -22,6 +22,7 @@ class DefaultScreen : public ScreenBase {
     int distance = 0;
     float speed = 0;
     int direction = 0;
+    int alt = 0;
     gpsTime time = {0,0,0};
     IntVar &timeZone;
     IntVar &oilsymbol_Zeit;
@@ -32,6 +33,7 @@ class DefaultScreen : public ScreenBase {
     void loop(ScreenArgs &state);
     void setup ();
     void triggerShowOiling();
+    Timer speedToggleTimeout = Timer(500);
 
     DefaultScreen(TFT_eSprite  &_spr, IntVar &_timeZone, IntVar & _oilsymbol_Zeit):  
         ScreenBase(_spr),

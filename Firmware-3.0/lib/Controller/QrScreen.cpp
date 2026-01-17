@@ -5,11 +5,16 @@
 #include "QrScreen.h"
 
 void QrScreen::setup () {
-    spr.fillScreen(TFT_WHITE);
+    Serial.println("QrScreen::setup()");
+    spr.fillRect(0,0,TFT_HEIGHT, TFT_WIDTH, TFT_WHITE);
     spr.setTextColor(TFT_BLACK);
-    spr.setCursor(1, 24);
+    spr.setTextSize (1);
+    spr.setTextFont(4);
+
+    spr.setCursor(0, 1);
     spr.println(title);
-    drawQRCodeSprite(spr, qrCode().c_str(), 56, 0, 2);
+    drawQRCodeSprite(spr, qrCode().c_str(), 43, 1, 4);
+    updateRequired = true;
 }
 
 void QrScreen::loop(ScreenArgs &args) {

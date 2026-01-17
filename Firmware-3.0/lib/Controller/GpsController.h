@@ -29,11 +29,13 @@ class GpsController: public VarContainer {
   int state = 0;
   int aSpeed[10] = {0,5,60,90,120,150,180,210,240,270};
   int aCourse[10] = {0,5,60,90,120,150,180,210,240,270};
-  bool emulatedRead(uint &vSattelites, float &vSpeed, uint &vCourse, gpsTime &vTime) {
+  int aAlt[10] = {-5, 0, 123, 234, 850, 1254, 2589, 3456, 6543, 8167};
+  bool emulatedRead(uint &vSattelites, float &vSpeed, uint &vCourse, gpsTime &vTime, int &vAlt) {
     if (state < 5) {
       vSattelites=4;
       vSpeed=aSpeed[state];
       vCourse=aCourse[state];
+      vAlt=aAlt[state];
       vTime=gpsTime{9,5,13};;
       state++;
       return true;
@@ -41,6 +43,7 @@ class GpsController: public VarContainer {
     vSattelites=5;
     vSpeed=aSpeed[state];
     vCourse=aCourse[state];
+    vAlt=aAlt[state];
     vTime=gpsTime{21,31,59};;
     state++;
     if (state >=10) state = 0;
@@ -48,9 +51,9 @@ class GpsController: public VarContainer {
   }
 
   const bool gpsEmulation = true;
-  bool read(uint &vSattelites, float &vSpeed, uint &vCourse, gpsTime &vTime) {
+  bool read(uint &vSattelites, float &vSpeed, uint &vCourse, gpsTime &vTime, int &vAlt) {
     if (gpsEmulation) {
-      return emulatedRead(vSattelites, vSpeed, vCourse, vTime);
+      return emulatedRead(vSattelites, vSpeed, vCourse, vTime, vAlt);
     }
     vSattelites=0;
     vSpeed=0;
@@ -64,6 +67,9 @@ class GpsController: public VarContainer {
     vSpeed = gps.speed.kmph();
     if (vSpeed < 2) // don't flicker if too slow
       vSpeed = 0;
+    if (!gps.altitude.isValid())
+      return false;
+    vAlt = gps.altitude.meters();
     if (!gps.course.isValid())
       return false;
     vCourse = gps.course.deg();
@@ -93,35 +99,24 @@ class GpsController: public VarContainer {
     return v;
   }
   
-#ifdef HW_PINS_DEFINED
   GpsController(int _rxPin, uint baudrate): gpsSerial(Serial1) {
     rxBaudrate = baudrate;
     rxPin = _rxPin;
     add(&zeit_bis_notbetrieb);
   }
-#else
-  GpsController() : gpsSerial(Serial1) {
-    add(&zeit_bis_notbetrieb);
-  }
-#endif
-
 
   void setup() {
     restore();
-#ifdef HW_PINS_DEFINED
     gpsSerial.begin(rxBaudrate, SERIAL_8N1, rxPin);
-#endif
     _gpsStarted = false;
     tmo = millis() + zeit_bis_notbetrieb.get() * 1000; // 180 Sekunden bis Init abgeschlossen sein sollte.
   }
 
   void loop() {
 
-#ifdef HW_PINS_DEFINED
     while (gpsSerial.available() > 0) {
       gps.encode(gpsSerial.read());
     }
-#endif
     if (_gpsStarted) 
       return;
     if (millis() > tmo)

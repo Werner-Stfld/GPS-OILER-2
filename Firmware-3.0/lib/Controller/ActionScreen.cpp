@@ -3,22 +3,25 @@
 #include "ActionScreen.h"
 
 void ActionScreen::setup() {
-    spr.fillScreen(TFT_WHITE);         
+    Serial.println("ActionScreen::setup()");
+    spr.fillRect(0,0,TFT_HEIGHT, TFT_WIDTH, TFT_WHITE);
     spr.setTextWrap(false);            
-    spr.setTextColor(TFT_BLACK, TFT_WHITE); 
-    // spr.setTextFont(4);
+    spr.setTextColor(TFT_BLACK); 
+    spr.setTextSize (1);
+    spr.setTextFont(4);
     printTitle();
-    spr.drawRect(1, 124, 122, 10, TFT_BLACK);        // Border of the bar chart
+    spr.drawRect(1, 117, 158, 10, TFT_BLACK);        // Border of the bar chart
+    updateRequired = true;
 }
 
 void ActionScreen::loop(ScreenArgs &args) {
     if (!displayTimeout.timedOut()) 
         return;
-    if (!updateRequired)
-        return;
-
-    updateRequired = false;
-    byte v = map(args.timeToActionInPercent, 0, 100, 0, 122); // map percent to rect length
-    spr.fillRect(1, 53, v, 10, TFT_BLACK);      // Draws the bar depending on the time, the button is pressed value
+    byte v = map(args.timeToActionInPercent, 0, 100, 0, 158); // map percent to rect length
+    uint32_t color = TFT_BLACK;
+    if (args.timeToActionInPercent >= 100) {
+        color = TFT_GREEN;
+    }
+    spr.fillRect(1, 117, v, 10, color);      // Draws the bar depending on the time, the button is pressed value
     spr.pushSprite(0,0);
 }

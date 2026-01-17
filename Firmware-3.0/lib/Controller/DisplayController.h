@@ -193,6 +193,16 @@ public:
             defaultScreen.updateRequired = true;
         }
     }
+    
+    void setAlt(int value)
+    {
+        if (defaultScreen.alt != value)
+        {
+            defaultScreen.alt = value;
+            defaultScreen.updateRequired = true;
+        }
+    }
+
     void setBatteryVoltage(float value) {
         if (value != batteryVoltage) {
             batteryVoltage = value;
@@ -212,12 +222,10 @@ public:
         }
     }
 
-    void (*onTankReset)() = []()  {
-
-    };
     void OnTankReset(void tankReset()) {
-        onTankReset = tankReset;
+        resetTankScreen.execute = tankReset;
     }
+
     void (*onWiFiReset)() = []()  {
 
     };

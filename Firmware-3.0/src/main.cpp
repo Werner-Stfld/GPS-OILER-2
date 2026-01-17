@@ -1,7 +1,7 @@
 #undef test
 #ifdef test
 #include <TFT_eSPI.h>
-#include "Screens.h"
+#include "ScreenBase.h"
 
 TFT_eSPI tft = TFT_eSPI();
 TFT_eSprite spr = TFT_eSprite(&tft);
@@ -32,14 +32,14 @@ void setup() {
   tft.init(INITR_GREENTAB2);
 
   Serial.println((unsigned long)_spi_user,HEX);
-  tft.setRotation(3);
+  tft.setRotation(1);
   tft.fillScreen(tft.color565(0,255,0));
   spr.createSprite(TFT_HEIGHT, TFT_WIDTH);  // Vollbild-Sprite
 }
 
 uint8_t i=0;
-void loop() {
-  delay(50);
+void IRAM_ATTR  loop() {
+  delay(100);
   
   spr.fillRect(0,0,160,40, tft.color565(i,0,0));
   spr.fillRect(0,41,160,40,tft.color565(0,i,0));
@@ -49,6 +49,7 @@ void loop() {
   String txt = "FF: ";
   txt += i++;
 
+  Serial.println(txt.c_str());
   spr.drawString(txt.c_str(), 1, 10);
   spr.pushSprite(0, 0);  // In einem Rutsch aufs Display
 }
@@ -99,6 +100,7 @@ void serialStatus();
 
 void tankReset() {
   Serial.println("Tank Reset");
+  tankController.reset();
 }
 
 void wiFiReset() {
@@ -123,9 +125,6 @@ void setup()
   delay(500); // wird auf dem c3 benötigt, wenn CDC eingeschaltet ist.
   Serial.begin(115200);
   delay(300);
-  while (!Serial) { // Wait until serial output is available
-    delay(10);
-  } 
 
   initFromPreferences.restore();
   if (initFromPreferences.get()==0) // Default after flush of memory. May also be forced by web UI.
@@ -187,7 +186,7 @@ bool standStillEdgeDetected(bool gpsAvailable, float speed) {
   return false;
 }
 
-Timer secondTimer = Timer(1000);
+Timer secondTimer = Timer(300);
 Timer minuteTimer = Timer(60000);
 
 void loop()
@@ -208,8 +207,9 @@ void loop()
     float speed;
     uint direction;
     gpsTime time;
+    int alt;
 
-    bool gpsAvailable = gpsController.read(sattelites, speed, direction, time);
+    bool gpsAvailable = gpsController.read(sattelites, speed, direction, time, alt);
     geschwindigkeit.set(speed);
     float oilingSpeed = speed; // oilingSpeed: speed to evaluate distance for oiling
     if (!gpsAvailable && gpsController.gpsStarted())
@@ -235,6 +235,7 @@ void loop()
     displayController.setSpeed(speed);
     displayController.setDistance(distanceController.Gefahrene_km.get());
     displayController.setTime(time);
+    displayController.setAlt(alt);
     displayController.setTankPercent(tankController.fillGradeInPercent());
     displayController.setOilingDistanceInPercent(distanceController.oilingDistanceInPercent());
     displayController.setBatteryVoltage(voltageController.voltage());
