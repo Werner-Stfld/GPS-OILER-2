@@ -25,6 +25,8 @@ namespace PrefKeys {
   PrefKey oilingDistance = "distance";            // Wird zur Berechnung der Zurückgelegten entfernung benötigt
   PrefKey Start_disp_1 = "scr1_tmo";              //
   PrefKey Start_disp_2 = "scr2_tmo";              //
+  PrefKey brightness = "brightness";               //
+  PrefKey currentScreen = "currScreen";             //
   PrefKey pump_nach_Regen = "rain_off_cnt";           // Pumpimpulse wenn der Regenmodus abgeschaltet wird
   PrefKey ssid_ap = "ssid";                   // Name des AP
   PrefKey password_ap = "pw";               // Password AP

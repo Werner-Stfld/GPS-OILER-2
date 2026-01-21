@@ -3,14 +3,15 @@
 #include <Arduino.h>
 #include "userVar.h"
 
-// Limit pumpDistance to be not less than 500 m
-int checkPumpDistanz(int i) {
-  return i > 500?i:500;
-}
 
 class DistanceController : public VarContainer {
   unsigned long start = 0;
-public:
+
+  // Limit pumpDistance to be not less than 500 m
+  static int checkPumpDistanz(int i) {
+    return i > 500?i:500;
+  }
+  public:
   
   IntVar pumpDistanz = IntVar(String("Pumpdistanz:"),2000, PrefKeys::pumpDistanz, checkPumpDistanz);              // Abstand in m zwischen den einzelnen Ölungen
   FloatVar Gefahrene_km = FloatVar(String( "Gefahrene Km:"), 0, PrefKeys::Gefahrene_km);         // Für die Anzeige der gefahrenen Strecke seit letztem Tank Reset.
@@ -56,3 +57,5 @@ public:
     return pulses;
   }
 };
+
+extern DistanceController distanceController;

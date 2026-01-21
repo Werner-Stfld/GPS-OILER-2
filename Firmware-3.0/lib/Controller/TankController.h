@@ -33,3 +33,4 @@ class TankController: public VarContainer {
   }
 };
 
+extern TankController tankController;

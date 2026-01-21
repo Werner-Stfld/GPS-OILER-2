@@ -1,11 +1,17 @@
-// #include <Fonts/FreeMonoBold12pt7b.h> // Schriftart für das OLED
-// #include <Fonts/FreeMono9pt7b.h>      // Schriftart für das OLED
 #include <Complex.h>
+#include <TFT_eSPI.h>
+#include <math.h>
 
 #include "globals.h"
 #include "webController.h"
 #include "DisplayController.h"
+#include "DistanceController.h"
+#include "RainController.h"
+#include "TankController.h"
+
 #include "icons.h"
+
+void initSinTab();
 
 void DefaultScreen::setup() {
     Serial.println("DefaultScreen::setup()");
@@ -14,6 +20,90 @@ void DefaultScreen::setup() {
     spr.setTextColor(TFT_BLACK);
     spr.setTextSize (1);
     spr.setTextFont(6);
+    initSinTab();
+    updateRequired = true;
+}
+
+void DefaultScreen::updateData() {
+    {
+        int value = distanceController.oilingDistanceInPercent();
+        if (value != oilingDistanceInPercent) {
+            oilingDistanceInPercent = value;
+            updateRequired = true;
+        }
+    }
+    {
+        float value = gpsController.speed();
+        if (value != speed)
+        {
+            speed = value;
+            updateRequired = true;
+        }
+    }
+    {
+        int value = tankController.fillGradeInPercent();
+        if (value != tankPercent)
+        {
+            tankPercent = value;
+            updateRequired = true;
+        }
+    }
+    {
+        bool value = !gpsController.emergency();
+        if (value != showSattelite)
+        {
+            showSattelite = value;
+            updateRequired = true;
+        }
+    }
+    {
+        int value = gpsController.sattelites();
+        if (value != noSattelite)
+        {
+            noSattelite = value;
+            updateRequired = true;
+        }
+    }
+
+    {
+        bool value = rainController.isRaining();
+        if (value != showRaining)
+        {
+            showRaining = value;
+            updateRequired = true;
+        }
+    }
+    {
+        int value = gpsController.course();
+        if (value != direction)
+        {
+            direction = value;
+            updateRequired = true;
+        }
+    }
+    {
+        gpsTime value = gpsController.time();
+        if (value.hour != time.hour || value.minute != time.minute)
+        {
+            time = value;
+            updateRequired = true;
+        }
+    }
+    {
+        int value = gpsController.altitude();
+        if (alt != value)
+        {
+            alt = value;
+            updateRequired = true;
+        }
+    }
+}
+
+void DefaultScreen::triggerShowOiling() {
+    timeoutShowOiling.nextTimeout(oilsymbol_Zeit.get()*1000);
+    if (!showOiling) 
+        updateRequired = true;
+    showOiling = true;
 }
 
 void DefaultScreen::loop(ScreenArgs &args) {
@@ -25,8 +115,22 @@ void DefaultScreen::loop(ScreenArgs &args) {
             updateRequired = true;
         showOiling=false; // remove oilcan
     }
+    if (tankPercent < 15) {
+        if (tankToggleTimeout.timedOut()) {
+            warningTankDisplay = !warningTankDisplay;
+            updateRequired = true;
+        }
+    } else {
+        if (warningTankDisplay)
+            updateRequired = true;
+        warningTankDisplay = false;
+    }
+
     if (!displayTimeout.timedOut()) 
         return;
+
+    updateData();
+
     if (!updateRequired)
         return;
     updateRequired = false;
@@ -46,6 +150,8 @@ void DefaultScreen::loop(ScreenArgs &args) {
 
 void DefaultScreen::displaySpeed()
 {
+    if (!showSattelite)
+        return;
     char tmp[10];
     dtostrf(speed, 3, 0, tmp);
     spr.setTextSize (1);
@@ -57,21 +163,23 @@ void DefaultScreen::displaySpeed()
     spr.setTextColor(TFT_BLACK);
 }
 
-bool toggleTankDisplay = false;
 void DefaultScreen::displayTank()
 {
-    if (tankPercent < 15) {
-        toggleTankDisplay = !toggleTankDisplay;
-    } else {
-        toggleTankDisplay = false;
-    }
-    if (toggleTankDisplay) {
+    if (warningTankDisplay) {
         spr.fillRect(1, 100, 72, 26, TFT_BLUE);    // Draws full bar in RED
-        return;
+        char tmp[10];
+        dtostrf(tankPercent, 2, 0, tmp);
+        int l = strlen(tmp);
+        tmp[l] = '%';
+        tmp[l+1] = 0;
+        spr.setTextFont(4);
+        spr.setTextColor(TFT_WHITE);
+        uint16_t cwidth = spr.textWidth(tmp);
+        spr.drawString(tmp, 36-cwidth/2, 102);
     } 
+    byte v = map(tankPercent, 0, 100, 0, 72); // map percent to rect length
+    spr.fillRect(1, 100, v, 26, TFT_RED);      // Draws the bar depending on the sensor value
     spr.drawRect(1, 100, 72, 26, TFT_BLACK);        // Border of the bar chart
-    byte v = map(tankPercent, 0, 100, 0, 75); // map percent to rect length
-    spr.fillRect(1, 100, v, 26, TFT_BLACK);      // Draws the bar depending on the sensor value
 }
 
 void DefaultScreen::displayTime()
@@ -148,21 +256,31 @@ int radius = 40;
 float scale = radius/(float)100;
 Complex center = Complex(116,84);
 
-#include <TFT_eSPI.h>
-#include <math.h>
-
 TFT_eSPI tft = TFT_eSPI();
 
-void DefaultScreen::drawScale(int cx, int cy, int r) {
+constexpr int sinTabLen = 360/5 + 90/5;
+float sinTab[sinTabLen];
+static bool isSinTabInitialized = false;
+void initSinTab() {
+    if (isSinTabInitialized)
+        return;
+    isSinTabInitialized = true;
     float gradRadient = 2 * PI/360;
-    for (int angle = 0; angle < 360; angle += 5) {
+    for (int i=0; i< sinTabLen;i++) {
+        int angle = i*5;
         float rad = angle * gradRadient;
-        float cosr = cos(rad);
-        float sinr = sin(rad);
-        
+        sinTab[i] = sin(rad);
+    }
+}
+
+void DefaultScreen::drawScale(int cx, int cy, int r) {
+
+    for (int i = 0; i < 72; i++) { // 360/5
+        float cosr = sinTab[i+18]; // 90/5
+        float sinr = sinTab[i];
         int x1 = cx + cosr * r;
         int y1 = cy + sinr * r;
-        int l = r - (angle % 30 == 0 ? 12 : 6);
+        int l = r - (i % 6 == 0 ? 12 : 6);
         int x2 = cx + cosr * l;
         int y2 = cy + sinr * l;
 
@@ -179,19 +297,21 @@ void DefaultScreen::displayCompass() {
     spr.fillCircle(center.real(), center.imag(), radius + 2, TFT_DARKGREY);
     spr.drawCircle(center.real(), center.imag(), radius + 2, TFT_BLACK);
     drawScale(center.real(), center.imag(), radius);
-    float rad = -PI*2*(direction+180)/360; 
-    Complex rot;
-    rot.polar(1, rad);
-    Complex _n = center + n*rot;
-    Complex _e = center + e*rot;
-    Complex _w = center + w*rot;
-    Complex _s = center + s*rot;
-    spr.fillTriangle(_n.real(), _n.imag(), _w.real(), _w.imag(), _e.real(), _e.imag(), TFT_BLUE);
-    spr.fillTriangle(_s.real(), _s.imag(), _w.real(), _w.imag(), _e.real(), _e.imag(), TFT_GREEN);
-    spr.drawTriangle(_n.real(), _n.imag(), _w.real(), _w.imag(), _e.real(), _e.imag(), TFT_BLACK);
-    spr.drawTriangle(_s.real(), _s.imag(), _w.real(), _w.imag(), _e.real(), _e.imag(), TFT_BLACK);
-    spr.drawCircle(center.real(), center.imag(), 9, TFT_BLACK);
-    spr.fillCircle(center.real(), center.imag(), 8, TFT_DARKGREY);
+    if (showSattelite) {
+        float rad = -PI*2*(direction+180)/360; 
+        Complex rot;
+        rot.polar(1, rad);
+        Complex _n = center + n*rot;
+        Complex _e = center + e*rot;
+        Complex _w = center + w*rot;
+        Complex _s = center + s*rot;
+        spr.fillTriangle(_n.real(), _n.imag(), _w.real(), _w.imag(), _e.real(), _e.imag(), TFT_BLUE);
+        spr.fillTriangle(_s.real(), _s.imag(), _w.real(), _w.imag(), _e.real(), _e.imag(), TFT_GREEN);
+        spr.drawTriangle(_n.real(), _n.imag(), _w.real(), _w.imag(), _e.real(), _e.imag(), TFT_BLACK);
+        spr.drawTriangle(_s.real(), _s.imag(), _w.real(), _w.imag(), _e.real(), _e.imag(), TFT_BLACK);
+    }
+    spr.fillCircle(center.real(), center.imag(), 12, TFT_DARKGREY);
+    spr.drawCircle(center.real(), center.imag(), 12, TFT_BLACK);
     spr.fillCircle(center.real(), center.imag(), 4, TFT_BLACK);
 
 }
@@ -218,9 +338,3 @@ void DefaultScreen::displayDirectionOnMap() {
     spr.fillTriangle(_o.real(), _o.imag(), _ur.real(), _ur.imag(), _m.real(), _m.imag(), TFT_BLUE);
 }
 
-void DefaultScreen::triggerShowOiling() {
-    timeoutShowOiling.nextTimeout(oilsymbol_Zeit.get()*1000);
-    if (!showOiling) 
-        updateRequired = true;
-    showOiling = true;
-}

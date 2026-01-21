@@ -6,12 +6,14 @@
 
 class RainController: public VarContainer {
 
-  int rainAverage = 0;
+  int _rainAverage = 0;
   unsigned long tmo = 0;
   int _remainingPulsesAfterRain;
   int _initAverageLoop;
 
-    // lmiit the rainMultiplier between 1 and 5
+
+
+  // lmiit the rainMultiplier between 1 and 5
   static float checkBoundsRainMulti (float v) {
     if (v < 1) {
       return 1;
@@ -28,6 +30,10 @@ class RainController: public VarContainer {
     IntVar sw_Regensensor_aus = IntVar(String("Schwelle Regenmodus aus:"), 800, PrefKeys::sw_Regensensor_aus);    // Schwellwert Regenmodus aus
     FloatVar rainMulti = FloatVar(String("Regen Multiplikator:"), (float)2.0, PrefKeys::rainMulti, &checkBoundsRainMulti); // Multiplikator für Regenmodus in Promille
     IntVar raining = IntVar(String("Regenmodus:"), 0, PrefKeys::regenmodus);                                      // Regenmodus Zustand beim Ausschalten
+
+    int rainAverage() {
+      return _rainAverage;
+    }
 
   RainController() {
     _initAverageLoop = 10; // loop 10 times before using the average value
@@ -69,9 +75,9 @@ class RainController: public VarContainer {
     tmo = millis() + 1000;
 
 #ifdef HW_PINS_DEFINED
-    rainAverage = 0.85 * rainAverage + 0.15 * analogRead(RAIN_SENSOR_PIN);
+    _rainAverage = 0.85 * _rainAverage + 0.15 * analogRead(RAIN_SENSOR_PIN);
 #else
-    rainAverage = 650;
+    _rainAverage = 650;
 #endif
 
     if (_initAverageLoop > 0) { // wait until the average has been build up
@@ -79,11 +85,11 @@ class RainController: public VarContainer {
       return;
     }
 
-    if (rainAverage <= sw_Regensensor_ein.get())
+    if (_rainAverage <= sw_Regensensor_ein.get())
     {
       raining.set(1);
     }
-    if (rainAverage >= sw_Regensensor_aus.get() && isRaining())
+    if (_rainAverage >= sw_Regensensor_aus.get() && isRaining())
     {
       raining.set(0);
       _remainingPulsesAfterRain = pump_nach_Regen.get();

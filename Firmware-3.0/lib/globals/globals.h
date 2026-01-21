@@ -8,9 +8,7 @@ extern const char *firmware_Vers; // Aktuelle Firmwareversion
 #ifdef HW_PINS_DEFINED
 extern const int RAIN_SENSOR_PIN; // Pin für Regensensor
 extern const int VCC_SENSOR_PIN; // Pin für VCC Messung
-
-extern const int WLAN_RESET_PIN;  // Taster zum Resetten des AP, Setzt ssid auf "OILER" und Passwort wird deaktiviert
-
+extern const int BUTTON_PIN;  // Taster zum Bedienen der Screens
 extern const int RXPin;       // Für Software Serial
 extern const uint32_t GPSBaud; // Baudrate für Software Serial
 

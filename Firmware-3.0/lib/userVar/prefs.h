@@ -25,8 +25,8 @@ namespace PrefKeys {
   extern PrefKey TimeAPout;                  // Zeit bis zum abschalter des AP
   extern PrefKey init_pump_anzahl;           //
   extern PrefKey oilingDistance;            // Wird zur Berechnung der Zurückgelegten entfernung benötigt
-  extern PrefKey Start_disp_1;              //
-  extern PrefKey Start_disp_2;              //
+  extern PrefKey brightness;               //
+  extern PrefKey currentScreen;             //
   extern PrefKey pump_nach_Regen;           // Pumpimpulse wenn der Regenmodus abgeschaltet wird
   extern PrefKey ssid_ap;                   // Name des AP
   extern PrefKey password_ap;               // Password AP

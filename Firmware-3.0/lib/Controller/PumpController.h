@@ -61,16 +61,20 @@ class PumpController: public VarContainer {
   }
 
   void loop(float speed) {
-    if ((state == pulseIdle) && (pendingPulses.get() > 0)) {
-      if (spuelen == false) {
-        if (speed < minGeschwindigkeit.get())
-          return; // Don't oil in standstill
+    if (state == pulseIdle) {
+      if (spuelen) {
+        state = pulseOn;
+      } else {
+        if (pendingPulses.get() > 0 && (speed >= minGeschwindigkeit.get())) { // Don't oil in standstill
+          state = pulseOn;
+        }
       }
-      state = pulseOn;
-      setPin(LOW);
-      tmo = millis() + zeit_pumpe_ein.get();
+      if (state == pulseOn) {
+        setPin(LOW);
+        tmo = millis() + zeit_pumpe_ein.get();
+      }
       return;
-    }
+    } 
 
     if (millis() < tmo)
       return; // wait a while

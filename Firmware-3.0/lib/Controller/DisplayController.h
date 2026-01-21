@@ -10,6 +10,8 @@
 #include "QrScreen.h"
 #include "ActionScreen.h"
 #include "DefaultScreen.h"
+#include "BrightnessScreen.h"
+#include "InfoScreen.h"
 
 // detects falling edges of a button. Returns the time, the button has been pressed
 // while pressed. 
@@ -18,8 +20,21 @@ class ButtonHandler {
     unsigned long fallingEdge = 0;
     unsigned long pressedTime = 0;
     bool lastPressed = false;
+    unsigned long longFallingEdgeTimeout = 2000;
+    unsigned long shortFallingEdgeTimeout = 300;
+
 public:
     ButtonHandler() {
+    }
+
+    ButtonState GetButtonState () {
+        if (fallingEdge < 30) // too short
+            return ButtonState::none;
+        if (fallingEdge > longFallingEdgeTimeout && fallingEdge < 10000) // execute provided action
+            return ButtonState::LongFallingEdge;
+        if (fallingEdge < shortFallingEdgeTimeout)
+            return ButtonState::ShortFallingEdge;
+        return ButtonState::none;
     }
 
     unsigned long FallingEdge() {
@@ -27,6 +42,14 @@ public:
     }
     unsigned long PressedTime() {
         return pressedTime;
+    }
+
+    unsigned long PressedTimeAfterFallingEdge() {
+        return (pressedTime <= shortFallingEdgeTimeout)? 0: pressedTime - shortFallingEdgeTimeout;
+    }
+
+    unsigned long TimeToActionInPercent() {
+        return (pressedTime <= shortFallingEdgeTimeout)? 0: (pressedTime - shortFallingEdgeTimeout)*100/longFallingEdgeTimeout;
     }
 
     void loop(bool pressed) {
@@ -53,12 +76,7 @@ public:
 
 class DisplayController;
 
-enum ButtonState {
-    none,
-    LongFallingEdge,
-    ShortFallingEdge,  
-};
-
+constexpr int numScreens = 8;
 class DisplayController : public VarContainer 
 {
     TFT_eSPI tft = TFT_eSPI();
@@ -74,24 +92,20 @@ class DisplayController : public VarContainer
     WebQrScreen webQrScreen = WebQrScreen(spr);
     DefaultScreen defaultScreen = DefaultScreen(spr, timeZone, oilsymbol_Zeit);
     ResetTankScreen resetTankScreen = ResetTankScreen(spr);
+    ResetWiFiScreen resetWiFiScreen = ResetWiFiScreen(spr);
+    ResetSettingsScreen resetSettingsScreen = ResetSettingsScreen(spr);
+    BrightnessScreen brightnessScreen = BrightnessScreen(spr, brightness);
+    InfoScreen infoScreen = InfoScreen(spr);
 
-    ScreenBase *currentScreen;
-    // Anzeigen des Startbildschirm auf dem OLED-Display
-    void displayDefaultScreen();
-    void displayTankResetScreen();
-    void displayWifiQrScreen();
-    void displayWebQrScreen();
-    void displayVersionScreen();
-    void displayWifiResetScreen();
-    void displaySettingsResetScreen();
-
-    enum displayState
-    {
-        stateSetup,
-        stateScreen1,
-        stateScreen2,
-        stateScreen3,
-    } state = displayState::stateSetup;
+    ScreenBase *screens[numScreens] = {
+        &defaultScreen, 
+        &brightnessScreen, 
+        &resetTankScreen,
+        &infoScreen,
+        &wifiQrScreen,
+        &webQrScreen,
+        &resetWiFiScreen,
+        &resetSettingsScreen};
 
     Timer displayTimeout = Timer(1000); 
 
@@ -99,109 +113,19 @@ public:
     void setup();
 
     void loop(bool pressed);
-    IntVar Start_disp_1 = IntVar(String("Startbildschirm 1:"), 2, PrefKeys::Start_disp_1);
-    IntVar Start_disp_2 = IntVar(String("Startbildschirm 2:"), 5, PrefKeys::Start_disp_2);
-    IntVar oilsymbol_Zeit = IntVar(String("Zeit Ölsymbol:"), 6, PrefKeys::oilsymbol_Zeit);
+    IntVar currScreen = IntVar(String("Startbildschirm: "), 0, PrefKeys::currentScreen);
+    IntVar brightness = IntVar(String("Helligkeit: "), 100, PrefKeys::brightness);
+    IntVar oilsymbol_Zeit = IntVar(String("Zeit Ölsymbol:"), 3, PrefKeys::oilsymbol_Zeit);
     IntVar timeZone = IntVar(String("Zeitzone:"), 1, PrefKeys::timezone);                 
 
+    ScreenBase *currentScreen() {
+        int no = currScreen.get();
+        if (no < 0) no = 0;
+        if (no >= numScreens) no = numScreens - 1;
+        return screens[no];
+    }
+
     DisplayController();
-
-    void setDirection(int value)
-    {
-        if (value != defaultScreen.direction)
-        {
-            defaultScreen.direction = value;
-            defaultScreen.updateRequired = true;
-        }
-    }
-
-    void setSpeed(float value)
-    {
-        if (value != defaultScreen.speed)
-        {
-            defaultScreen.speed = value;
-            defaultScreen.updateRequired = true;
-        }
-    }
-    void setDistance(int value)
-    {
-        if (value != defaultScreen.distance)
-        {
-            defaultScreen.distance = value;
-            updateRequired = true;
-        }
-    }
-    void setRainAverage(int value)
-    {
-        if (value != rainAverage)
-        {
-            rainAverage = value;
-            updateRequired = true;
-        }
-    }
-
-    void setTankPercent(int value)
-    {
-        if (value != defaultScreen.tankPercent)
-        {
-            defaultScreen.tankPercent = value;
-            defaultScreen.updateRequired = true;
-        }
-    }
-    void setShowOiling(bool value)
-    {
-        if (value != defaultScreen.showOiling)
-        {
-            defaultScreen.showOiling = value;
-            updateRequired = true;
-        }
-    }
-    void setShowSattelite(bool value)
-    {
-        if (value != defaultScreen.showSattelite)
-        {
-            defaultScreen.showSattelite = value;
-            defaultScreen.updateRequired = true;
-        }
-    }
-    void setNoSattelite(int value)
-    {
-        if (value != defaultScreen.noSattelite)
-        {
-            defaultScreen.noSattelite = value;
-            defaultScreen.updateRequired = true;
-        }
-    }
-    int getNoSattelite()
-    {
-        return defaultScreen.noSattelite;
-    }
-    void setShowRaining(bool value)
-    {
-        if (value != defaultScreen.showRaining)
-        {
-            defaultScreen.showRaining = value;
-            defaultScreen.updateRequired = true;
-        }
-    }
-
-    void setTime(gpsTime value)
-    {
-        if (value.hour != defaultScreen.time.hour || value.minute != defaultScreen.time.minute)
-        {
-            defaultScreen.time = value;
-            defaultScreen.updateRequired = true;
-        }
-    }
-    
-    void setAlt(int value)
-    {
-        if (defaultScreen.alt != value)
-        {
-            defaultScreen.alt = value;
-            defaultScreen.updateRequired = true;
-        }
-    }
 
     void setBatteryVoltage(float value) {
         if (value != batteryVoltage) {
@@ -215,30 +139,18 @@ public:
         defaultScreen.triggerShowOiling();
     }
 
-    void setOilingDistanceInPercent(int value) {
-        if (value != defaultScreen.oilingDistanceInPercent) {
-            defaultScreen.oilingDistanceInPercent = value;
-            defaultScreen.updateRequired = true;
-        }
-    }
-
     void OnTankReset(void tankReset()) {
         resetTankScreen.execute = tankReset;
     }
 
-    void (*onWiFiReset)() = []()  {
-
-    };
     void OnWiFiReset(void wiFiReset()) {
-        onWiFiReset = wiFiReset;
+        resetWiFiScreen.execute = wiFiReset;
     }
-    void (*onSettingsReset)() = []()  {
 
-    };
     void OnSettingsReset(void settingsReset()) {
-        onSettingsReset = settingsReset;
-        wifiQrScreen.execute = settingsReset;
+        resetSettingsScreen.execute = settingsReset;
     }
+
     void (*onWiFiOnOff)(bool) = [](bool f)  {
 
     };

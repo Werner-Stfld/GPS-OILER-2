@@ -36,7 +36,7 @@ class ResetSettingsScreen : public ActionScreen {
     ResetSettingsScreen(TFT_eSprite  &_spr): ActionScreen(_spr)  {}
     virtual void printTitle() {
         spr.setCursor(1, 24);
-        spr.println("Reset");
         spr.println("Settings");
+        spr.println("Reset");
     };
 };

@@ -9,13 +9,22 @@ struct gpsTime {
   uint8_t second;
 };
 
+struct gpsDate {
+  uint8_t day;
+  uint8_t month;
+  uint16_t year;
+};
+struct gpsLocation {
+  double lat;
+  double lng;
+};
+
 class GpsController: public VarContainer {
   TinyGPSPlus gps;                   // gps data interpreter
   HardwareSerial gpsSerial;
   int rxPin;
   uint rxBaudrate;
 
-  Timer emergencyTimer = Timer(0);                // timer to delay emergency state
   Timer updateTimer = Timer(0);                // timer to poll gps
 
   bool _emergency = false;
@@ -23,7 +32,9 @@ class GpsController: public VarContainer {
   float _speed;
   uint _course;
   gpsTime _time;
+  gpsDate _date;
   int _alt;
+  gpsLocation _location;
 
   public:
   IntVar zeit_bis_notbetrieb = IntVar(String("Zeit bis Notbetrieb:"), 180, PrefKeys::zeit_bis_notbetrieb);       // Zeit bis Notbetrieb in Sekunden
@@ -46,7 +57,12 @@ class GpsController: public VarContainer {
   gpsTime time() {
     return _time;
   }
-
+  gpsDate date () {
+    return _date;
+  }
+  gpsLocation location () {
+    return _location;
+  }
   uint sattelites() {
     return _sattelites;
   }
@@ -64,9 +80,10 @@ class GpsController: public VarContainer {
     _speed = 0.0;
     _course = 0;
     _time = gpsTime{0,0,0};
+    _date = gpsDate{0,0,0};
+    _location = gpsLocation{0,0};
     _alt = 0;
     _emergency = false;
-    emergencyTimer = Timer(zeit_bis_notbetrieb.get() * 1000);
     updateTimer = Timer(500);
   }
 
@@ -78,52 +95,68 @@ class GpsController: public VarContainer {
       gps.encode(gpsSerial.read());
     }
 
-    if (updateTimer.timedOut()) {
-      if (gpsEmulation) {
-        emulatedRead ();
-        return;
-      }
-      if (gps.speed.isValid() && gps.satellites.isValid() && gps.satellites.value()>=3) {
-
+    if (!updateTimer.timedOut()) {
+      return;
+    }
+    if (gpsEmulation) {
+      emulatedRead ();
+      return;
+    }
     #if false
-        Serial.println("GPS");
-        Serial.println(gps.charsProcessed());
-        Serial.print("sattelites.isValid: ");
-        Serial.println(gps.satellites.isValid());
-        Serial.print("sattelites: ");
-        Serial.println(gps.satellites.value());
+    Serial.println("GPS");
+    Serial.println(gps.charsProcessed());
+    Serial.print("speed.age: ");
+    Serial.println(gps.speed.age());
+    Serial.print("sattelites.isValid: ");
+    Serial.println(gps.satellites.isValid());
+    Serial.print("sattelites: ");
+    Serial.println(gps.satellites.value());
     #endif
+    if (!gps.satellites.isValid()) { // wait until gps modul has initialized
+      return;
+    }
+    int tmo = zeit_bis_notbetrieb.get() * 1000;
+
+    if (gps.speed.age() == (u_int32_t)-1) { // after reset: gps setup not complete
+      _emergency = false;
+      return;
+    }
+
+    if (gps.speed.age() < tmo) {
+      if (gps.speed.isValid()) 
         _speed = gps.speed.kmph();
-        if (_speed < 2) // don't flicker if too slow
-          _speed = 0;  
+      if (_speed < 2) // don't flicker if too slow
+        _speed = 0;  
+      if (gps.altitude.isValid()) 
+        _alt = gps.altitude.meters();
 
-        if (gps.altitude.isValid()) 
-          _alt = gps.altitude.meters();
+      if (gps.course.isValid()) {
+        _course = unifyCourse(gps.course.deg());
+      }
 
-        if (gps.course.isValid()) {
-          _course = unifyCourse(gps.course.deg());
-        }
-
-        _sattelites = gps.satellites.value();
-        if (gps.time.isValid()) {
-          _time.hour = gps.time.hour();
-          _time.minute = gps.time.minute();
-          _time.second = gps.time.second();
-        } 
-        _emergency = false;
-        // retrigger emergency timer
-        emergencyTimer.nextTimeout(zeit_bis_notbetrieb.get() * 1000);
-        return;
+      _sattelites = gps.satellites.value();
+      if (gps.time.isValid()) {
+        _time.hour = gps.time.hour();
+        _time.minute = gps.time.minute();
+        _time.second = gps.time.second();
+        _date.day = gps.date.day();
+        _date.month = gps.date.month();
+        _date.year = gps.date.year();
       } 
+      if (gps.location.isValid()){
+        _location.lat = gps.location.lat();
+        _location.lng = gps.location.lng();
+      }
+      _emergency = false;
+      return;
     }
-    if (emergencyTimer.timedOut()) {
-      _emergency = true;
-      _sattelites = 0;
-      _speed = 0.0;
-      _course = 0;
-      _time = gpsTime{0,0,0};
-      _alt = 0;
-    }
+    _emergency = true;
+    _sattelites = 0;
+    _speed = 0.0;
+    _course = 0;
+    _time = gpsTime{0,0,0};
+    _date = gpsDate{0,0,0};
+    _alt = 0;
   }
 
   int state = 0;
@@ -165,3 +198,5 @@ class GpsController: public VarContainer {
     return v;
   }
 };
+
+extern GpsController gpsController;

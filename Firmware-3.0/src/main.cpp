@@ -156,7 +156,6 @@ void setup()
 
   delay(20);
 
-  displayController.setTankPercent(tankController.fillGradeInPercent());
   displayController.OnTankReset(tankReset);
   displayController.OnWiFiReset(wiFiReset);
   displayController.OnSettingsReset(settingsReset);
@@ -164,7 +163,7 @@ void setup()
 
   serialStatus();
 
-  pinMode(WLAN_RESET_PIN, INPUT);
+  pinMode(BUTTON_PIN, INPUT);
 }
 static bool edgeSignalled = true;
 
@@ -221,23 +220,13 @@ void loop()
     }
 
     // update display data
-    displayController.setShowSattelite(!gpsController.emergency());
-    displayController.setShowRaining(rainController.isRaining());
-    displayController.setDirection(gpsController.course());
-    displayController.setNoSattelite(gpsController.sattelites());
-    displayController.setSpeed(gpsController.speed());
-    displayController.setDistance(distanceController.Gefahrene_km.get());
-    displayController.setTime(gpsController.time());
-    displayController.setAlt(gpsController.altitude());
-    displayController.setTankPercent(tankController.fillGradeInPercent());
-    displayController.setOilingDistanceInPercent(distanceController.oilingDistanceInPercent());
     displayController.setBatteryVoltage(voltageController.voltage());
   }
 
-  pumpController.loop(oilingSpeed);    // process pump requests
-  displayController.loop(digitalRead(WLAN_RESET_PIN)==LOW); // update display and input key handling
-  webController.loop();     // process web requests
-  prefs.AssertClosed();
+  pumpController.loop(oilingSpeed);                     // process pump requests
+  displayController.loop(digitalRead(BUTTON_PIN)==LOW); // display and input button handling
+  webController.loop();                                 // process web requests
+  prefs.AssertClosed();                                 // Assert that Pref storage is closed
 }
 /////////////////////////////////
 // Serial support
@@ -255,8 +244,8 @@ void evaluate(String input)
   if (distanceController.Gefahrene_km.evaluate(input)) return; // Gefahrene Km
   if (distanceController.pumpDistanz.evaluate(input)) return; // Pumpdistanz
   if (displayController.oilsymbol_Zeit.evaluate(input)) return; // Ölsymbol Anzeigezeit
-  if (displayController.Start_disp_1.evaluate(input)) return; // Startdisplay 1
-  if (displayController.Start_disp_2.evaluate(input)) return; // Startdisplay 2
+  if (displayController.currScreen.evaluate(input)) return; // Startdisplay 1
+  if (displayController.brightness.evaluate(input)) return; // Startdisplay 2
   if (geschwindigkeit.evaluate(input))return; // Geschwindigkeit
   if (rainController.rainMulti.evaluate(input)) return; // RainMulti
 
@@ -317,8 +306,8 @@ void serialStatus()
   distanceController.pumpDistanz.status();
   rainController.pump_nach_Regen.status();
   pumpController.minGeschwindigkeit.status();
-  displayController.Start_disp_1.status();
-  displayController.Start_disp_2.status();
+  displayController.currScreen.status();
+  displayController.brightness.status();
   rainController.rainMulti.status();
   geschwindigkeit.status();
   tankController.tankinhalt_Aktuell.status();
@@ -326,15 +315,14 @@ void serialStatus()
 }
 
 void getDisplay(JsonDocument &doc) {
-  doc["screen1"] = displayController.Start_disp_1.get();;
-  doc["screen2"] = displayController.Start_disp_2.get();
+  doc["brightness"] = displayController.brightness.get();;
+  doc["currScreen"] = displayController.currScreen.get();
   doc["oilSymbol"] = displayController.oilsymbol_Zeit.get();
   doc["timeZone"] = displayController.timeZone.get();
 }
 
 void putDisplay(JsonDocument &doc) {
-  displayController.Start_disp_1.set(doc["screen1"], SetMode::flush);
-  displayController.Start_disp_2.set(doc["screen2"], SetMode::flush);
+  displayController.brightness.set(doc["brightness"], SetMode::flush);
   displayController.oilsymbol_Zeit.set(doc["oilSymbol"], SetMode::flush);
   displayController.timeZone.set(doc["timeZone"], SetMode::flush);
 }
