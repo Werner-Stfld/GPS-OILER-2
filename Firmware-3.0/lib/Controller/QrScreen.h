@@ -18,8 +18,8 @@ class QrScreen : public ScreenBase {
 class WiFiQrScreen : public QrScreen {
     String qrCode();
     public:
-    WiFiQrScreen(TFT_eSprite  &_spr): QrScreen(_spr, "wifi")  {
-    }
+    void setup ();
+    WiFiQrScreen(TFT_eSprite  &_spr): QrScreen(_spr, "wifi")  {}
 };
 
 class WebQrScreen : public QrScreen {

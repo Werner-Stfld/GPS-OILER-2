@@ -83,40 +83,34 @@ class DisplayController : public VarContainer
     TFT_eSprite spr = TFT_eSprite(&tft);
 
     ButtonHandler buttonHandler = ButtonHandler();
-    bool updateRequired = true;
-    int rainAverage = 0;
-
-    float batteryVoltage = 12.0;
 
     WiFiQrScreen wifiQrScreen = WiFiQrScreen(spr);
     WebQrScreen webQrScreen = WebQrScreen(spr);
     DefaultScreen defaultScreen = DefaultScreen(spr, timeZone, oilsymbol_Zeit);
+    DefaultScreen darkDefaultScreen = DefaultScreen(spr, timeZone, oilsymbol_Zeit, true);
     ResetTankScreen resetTankScreen = ResetTankScreen(spr);
     ResetWiFiScreen resetWiFiScreen = ResetWiFiScreen(spr);
-    ResetSettingsScreen resetSettingsScreen = ResetSettingsScreen(spr);
     BrightnessScreen brightnessScreen = BrightnessScreen(spr, brightness);
     InfoScreen infoScreen = InfoScreen(spr);
 
     ScreenBase *screens[numScreens] = {
         &defaultScreen, 
+        &darkDefaultScreen, 
         &brightnessScreen, 
         &resetTankScreen,
         &infoScreen,
         &wifiQrScreen,
         &webQrScreen,
-        &resetWiFiScreen,
-        &resetSettingsScreen};
-
-    Timer displayTimeout = Timer(1000); 
+        &resetWiFiScreen};
 
 public:
     void setup();
 
     void loop(bool pressed);
-    IntVar currScreen = IntVar(String("Startbildschirm: "), 0, PrefKeys::currentScreen);
-    IntVar brightness = IntVar(String("Helligkeit: "), 100, PrefKeys::brightness);
-    IntVar oilsymbol_Zeit = IntVar(String("Zeit Ölsymbol:"), 3, PrefKeys::oilsymbol_Zeit);
-    IntVar timeZone = IntVar(String("Zeitzone:"), 1, PrefKeys::timezone);                 
+    IntVar currScreen = IntVar(0, PrefKeys::currentScreen);
+    IntVar brightness = IntVar(100, PrefKeys::brightness);
+    IntVar oilsymbol_Zeit = IntVar(3, PrefKeys::oilsymbol_Zeit);
+    IntVar timeZone = IntVar(1, PrefKeys::timezone);                 
 
     ScreenBase *currentScreen() {
         int no = currScreen.get();
@@ -127,13 +121,6 @@ public:
 
     DisplayController();
 
-    void setBatteryVoltage(float value) {
-        if (value != batteryVoltage) {
-            batteryVoltage = value;
-            updateRequired = true;
-        }
-    }
-
     void triggerShowOiling()
     {
         defaultScreen.triggerShowOiling();
@@ -143,21 +130,17 @@ public:
         resetTankScreen.execute = tankReset;
     }
 
-    void OnWiFiReset(void wiFiReset()) {
-        resetWiFiScreen.execute = wiFiReset;
+    void OnResetWiFi(void resetWiFi()) {
+        resetWiFiScreen.execute = resetWiFi;
     }
 
-    void OnSettingsReset(void settingsReset()) {
-        resetSettingsScreen.execute = settingsReset;
+    void OnStartWiFi(void startWiFi()) {
+        wifiQrScreen.execute = startWiFi;
     }
 
     void (*onWiFiOnOff)(bool) = [](bool f)  {
 
     };
-
-    void OnWiFiOnOff(void wifiOnOff(bool)) {
-        onWiFiOnOff = wifiOnOff;
-    }
 };
 
 extern DisplayController displayController;

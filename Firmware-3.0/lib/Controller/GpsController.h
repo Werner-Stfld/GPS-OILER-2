@@ -27,7 +27,7 @@ class GpsController: public VarContainer {
 
   Timer updateTimer = Timer(0);                // timer to poll gps
 
-  bool _emergency = false;
+  bool _validData = false;
   uint _sattelites;
   float _speed;
   uint _course;
@@ -35,12 +35,13 @@ class GpsController: public VarContainer {
   gpsDate _date;
   int _alt;
   gpsLocation _location;
+  Timer _emergencyTimer = Timer(0);
 
   public:
-  IntVar zeit_bis_notbetrieb = IntVar(String("Zeit bis Notbetrieb:"), 180, PrefKeys::zeit_bis_notbetrieb);       // Zeit bis Notbetrieb in Sekunden
+  IntVar zeit_bis_notbetrieb = IntVar(180, PrefKeys::zeit_bis_notbetrieb);       // Zeit bis Notbetrieb in Sekunden
 
-  bool emergency() {
-    return _emergency;
+  bool validData() {
+    return _validData;
   }
 
   bool speed() {
@@ -83,8 +84,9 @@ class GpsController: public VarContainer {
     _date = gpsDate{0,0,0};
     _location = gpsLocation{0,0};
     _alt = 0;
-    _emergency = false;
+    _validData = false;
     updateTimer = Timer(500);
+    _emergencyTimer = Timer(zeit_bis_notbetrieb.get()*1000);
   }
 
   const bool gpsEmulation = false;
@@ -117,12 +119,9 @@ class GpsController: public VarContainer {
     }
     int tmo = zeit_bis_notbetrieb.get() * 1000;
 
-    if (gps.speed.age() == (u_int32_t)-1) { // after reset: gps setup not complete
-      _emergency = false;
-      return;
-    }
+    _validData = gps.speed.age() < tmo;
 
-    if (gps.speed.age() < tmo) {
+    if (_validData) {
       if (gps.speed.isValid()) 
         _speed = gps.speed.kmph();
       if (_speed < 2) // don't flicker if too slow
@@ -147,10 +146,8 @@ class GpsController: public VarContainer {
         _location.lat = gps.location.lat();
         _location.lng = gps.location.lng();
       }
-      _emergency = false;
       return;
     }
-    _emergency = true;
     _sattelites = 0;
     _speed = 0.0;
     _course = 0;
@@ -165,7 +162,6 @@ class GpsController: public VarContainer {
   int aAlt[10] = {-5, 0, 123, 234, 850, 1254, 2589, 3456, 6543, 8167};
   bool emulatedRead() {
     if (state < 5) {
-      _emergency = false;
       _sattelites = 4;
       _speed = aSpeed[state];
       _course = aCourse[state];

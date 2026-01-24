@@ -39,7 +39,7 @@ int noIntBoundsCheck(int v)
   return v;
 }
 
-IntVar::IntVar(String n, int initial, PrefKey a, int (*cb) (int)) : name(n), value(a), checkBounds(cb) {
+IntVar::IntVar(int initial, PrefKey a, int (*cb) (int)) : value(a), checkBounds(cb) {
   value.set(initial);
 }
 
@@ -51,23 +51,6 @@ void IntVar::set(int v, SetMode mode) {
   value.set(checkBounds(v));
   if (mode == SetMode::flush)
     value.flush();
-}
-
-bool IntVar::evaluate(String &input) {
-  if (input.startsWith(name))
-  {
-    input.replace(name, "");
-    int value = input.toInt();
-    set(value, SetMode::flush);
-    status();
-    return true;
-  }
-  return false;
-}
-
-void IntVar::status() {
-  Serial.print(name);
-  Serial.println(value.get());
 }
 
 void IntVar::restore() {
@@ -82,7 +65,7 @@ float noFloatBoundsCheck(float v) {
     return v;
 }
 
-FloatVar::FloatVar(String n, float initial, PrefKey a, float (*floatCB) (float v)) : name(n), value(a), checkBounds(floatCB) {
+FloatVar::FloatVar(float initial, PrefKey a, float (*floatCB) (float v)) : value(a), checkBounds(floatCB) {
   value.set(initial);
 }
 
@@ -96,22 +79,6 @@ void FloatVar::set(float v, SetMode mode) {
     value.flush();
 }
 
-bool FloatVar::evaluate(String &input) {
-  if (input.startsWith(name))
-  {
-    input.replace(name, "");
-    float value = input.toDouble();
-    set(value, SetMode::flush);
-    status();
-    return true;
-  }
-  return false;
-}
-void FloatVar::status() {
-  Serial.print(name);
-  Serial.println(value.get());
-}
-
 void FloatVar::restore() {
   value.restore();
 }
@@ -120,7 +87,7 @@ void FloatVar::flush() {
   value.flush();
 }
 
-StringVar::StringVar(String n, const char *initial, PrefKey a) : name(n), value(a) {
+StringVar::StringVar(const char *initial, PrefKey a) : value(a) {
   value.set(initial);
 }
 
@@ -132,11 +99,6 @@ void StringVar::set(const char *v, SetMode mode) {
   value.set(v);
   if (mode == SetMode::flush)
     value.flush();
-}
-
-void StringVar::status() {
-  Serial.print(name);
-  Serial.println(value.get());
 }
 
 void StringVar::restore() {

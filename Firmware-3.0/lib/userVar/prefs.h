@@ -30,8 +30,6 @@ namespace PrefKeys {
   extern PrefKey pump_nach_Regen;           // Pumpimpulse wenn der Regenmodus abgeschaltet wird
   extern PrefKey ssid_ap;                   // Name des AP
   extern PrefKey password_ap;               // Password AP
-  extern PrefKey Gefahrene_km;              //
-  extern PrefKey Gefahrene_km_Ges;          //
   extern PrefKey timezone;                  //
   extern PrefKey tankinhalt_Aktuell;        //
   extern PrefKey pump_pending;              // Anzahl noch ausstehender Pump Pulse nach reset

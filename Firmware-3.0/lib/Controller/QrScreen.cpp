@@ -44,6 +44,12 @@ String WiFiQrScreen::qrCode() {
     return qrCode.c_str();
 }
 
+void WiFiQrScreen::setup() {
+    QrScreen::setup();
+    if (execute != nullptr)
+        execute(); // Switch WiFi on
+}
+
 String WebQrScreen::qrCode() {
     static String qrCode = "http://192.168.4.1:80";
     return qrCode;

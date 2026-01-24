@@ -25,18 +25,13 @@ class ResetWiFiScreen : public ActionScreen {
     public:
     ResetWiFiScreen(TFT_eSprite  &_spr): ActionScreen(_spr)  {}
     virtual void printTitle() {
-        spr.setCursor(1, 24);
-        spr.println("WiFi");
-        spr.println("Reset");
-    };
-};
+        spr.setCursor(1, 1);
+        spr.println("WiFi Reset");
+        spr.setTextFont(2);
 
-class ResetSettingsScreen : public ActionScreen {
-    public:
-    ResetSettingsScreen(TFT_eSprite  &_spr): ActionScreen(_spr)  {}
-    virtual void printTitle() {
-        spr.setCursor(1, 24);
-        spr.println("Settings");
-        spr.println("Reset");
+        spr.println("name     -> GPS-OILER");
+        spr.println("password -> 12345678");
+        spr.println("restarts device");
+        spr.setTextFont(4);
     };
 };

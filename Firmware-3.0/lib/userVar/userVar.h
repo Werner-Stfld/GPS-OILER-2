@@ -35,20 +35,15 @@ protected:
 };
 
 class IntVar : public Var {
-  String name;
   IntPrefVar value;
   int (*checkBounds) (int v);
 
 public:
-  IntVar(String n, int initial, PrefKey a, int (*cb) (int v)=noIntBoundsCheck);
+  IntVar(int initial, PrefKey a, int (*cb) (int v)=noIntBoundsCheck);
 
   int get();
   
   void set(int v, SetMode mode = cache);
-
-  bool evaluate(String &input);
-
-  void status();
 
   void restore();
 
@@ -58,19 +53,14 @@ public:
 float noFloatBoundsCheck(float);
 
 class FloatVar : public Var {
-  String name;
   FloatPrefVar value;
   float (*checkBounds) (float v);
 public:
-  FloatVar(String n, float initial, PrefKey a, float (*floatCheckBounds) (float v)= noFloatBoundsCheck);
+  FloatVar(float initial, PrefKey a, float (*floatCheckBounds) (float v)= noFloatBoundsCheck);
 
   float get();
   
   void set(float v, SetMode mode = cache);
-
-  bool evaluate(String &input);
-
-  void status();
 
   void restore();
 
@@ -78,17 +68,14 @@ public:
 };
 
 class StringVar : public Var {
-  String name;
   StringPrefVar value;
 
 public:
-  StringVar(String n, const char *initial, PrefKey a);
+  StringVar(const char *initial, PrefKey a);
 
   const char *get();
   
   void set(const char * v, SetMode mode = cache);
-
-  void status();
 
   void restore();
 

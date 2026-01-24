@@ -16,10 +16,10 @@ class PumpController: public VarContainer {
   void (*notifyPulse)();
 
   public:
-  IntVar zeit_pumpe_ein = IntVar(String("Zeit Pumpdauer:"), 50, PrefKeys::zeit_pumpe_ein); // Zeit in ms wie lange die Pumpe eineschaltet ist
-  IntVar zeit_pumpe_pause = IntVar(String("Zeit Pumppause:"), 500, PrefKeys::zeit_pumpe_pause); // Zeit zwischen den einzelnen Pumpimpulsen
-  IntVar minGeschwindigkeit = IntVar(String("Min. Geschwindigkeit:"), 5, PrefKeys::minGeschwindigkeit); // Mindestgeschwindigkeit zum Ölen
-  IntVar pendingPulses =  IntVar(String("Pending Pulses:"), 0, PrefKeys::pump_pending); // Noch zu erledigende Pulse
+  IntVar zeit_pumpe_ein = IntVar(50, PrefKeys::zeit_pumpe_ein); // Zeit in ms wie lange die Pumpe eineschaltet ist
+  IntVar zeit_pumpe_pause = IntVar(500, PrefKeys::zeit_pumpe_pause); // Zeit zwischen den einzelnen Pumpimpulsen
+  IntVar minGeschwindigkeit = IntVar(5, PrefKeys::minGeschwindigkeit); // Mindestgeschwindigkeit zum Ölen
+  IntVar pendingPulses =  IntVar(0, PrefKeys::pump_pending); // Noch zu erledigende Pulse
 
   PumpController(void (*onPulse)()=[]() {}) : notifyPulse(onPulse) {
     add(&zeit_pumpe_ein);
@@ -63,6 +63,7 @@ class PumpController: public VarContainer {
   void loop(float speed) {
     if (state == pulseIdle) {
       if (spuelen) {
+        Serial.println("spuelen");
         state = pulseOn;
       } else {
         if (pendingPulses.get() > 0 && (speed >= minGeschwindigkeit.get())) { // Don't oil in standstill

@@ -43,3 +43,6 @@
 #undef TFT_PARALLEL_8_BIT
 #undef SPI_18BIT_DRIVER
 #undef RPI_DISPLAY_TYPE
+
+// due to warnings in the library (no touch cs pin defined)
+#define DISABLE_ALL_LIBRARY_WARNINGS 

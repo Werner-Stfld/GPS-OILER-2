@@ -6,9 +6,9 @@
 class TankController: public VarContainer {
 
   public:
-  IntVar pumps_ml = IntVar(String("Pump Impulse pro ml:"), 50, PrefKeys::pumps_ml);                   // Anzahl der Pumpimpulse pro ml
-  FloatVar tankinhalt_ml = FloatVar(String("Tankinhalt ml:"),150, PrefKeys::tankinhalt_ml);             // Tankinhalt in ml
-  FloatVar tankinhalt_Aktuell =  FloatVar(String("Tankinhalt akt. (ml):"), 150, PrefKeys::tankinhalt_Aktuell);        // Wert des Aktuellen Tankinhalts in ml
+  IntVar pumps_ml = IntVar(50, PrefKeys::pumps_ml);                   // Anzahl der Pumpimpulse pro ml
+  FloatVar tankinhalt_ml = FloatVar(150, PrefKeys::tankinhalt_ml);             // Tankinhalt in ml
+  FloatVar tankinhalt_Aktuell =  FloatVar(150, PrefKeys::tankinhalt_Aktuell);        // Wert des Aktuellen Tankinhalts in ml
 
   TankController() {
     add(&pumps_ml);
@@ -30,6 +30,7 @@ class TankController: public VarContainer {
 
   void reset() {
     tankinhalt_Aktuell.set(tankinhalt_ml.get(), SetMode::flush);
+    tankinhalt_Aktuell.set(15, SetMode::flush);
   }
 };
 

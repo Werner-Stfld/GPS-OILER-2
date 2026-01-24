@@ -25,11 +25,11 @@ class RainController: public VarContainer {
   };
 
   public:
-    IntVar pump_nach_Regen = IntVar(String("Pumpstoesse nach Regen:"), 5, PrefKeys::pump_nach_Regen);             // Pumpimpulse wenn der Regenmodus abgeschaltet wird
-    IntVar sw_Regensensor_ein = IntVar(String("Schwelle Regenmodus ein:"), 600, PrefKeys::sw_Regensensor_ein);    // Schwellwert Regenmodus ein
-    IntVar sw_Regensensor_aus = IntVar(String("Schwelle Regenmodus aus:"), 800, PrefKeys::sw_Regensensor_aus);    // Schwellwert Regenmodus aus
-    FloatVar rainMulti = FloatVar(String("Regen Multiplikator:"), (float)2.0, PrefKeys::rainMulti, &checkBoundsRainMulti); // Multiplikator für Regenmodus in Promille
-    IntVar raining = IntVar(String("Regenmodus:"), 0, PrefKeys::regenmodus);                                      // Regenmodus Zustand beim Ausschalten
+    IntVar pump_nach_Regen = IntVar(5, PrefKeys::pump_nach_Regen);             // Pumpimpulse wenn der Regenmodus abgeschaltet wird
+    IntVar sw_Regensensor_ein = IntVar(600, PrefKeys::sw_Regensensor_ein);    // Schwellwert Regenmodus ein
+    IntVar sw_Regensensor_aus = IntVar(800, PrefKeys::sw_Regensensor_aus);    // Schwellwert Regenmodus aus
+    FloatVar rainMulti = FloatVar(2.0, PrefKeys::rainMulti, &checkBoundsRainMulti); // Multiplikator für Regenmodus in Promille
+    IntVar raining = IntVar(0, PrefKeys::regenmodus);                                      // Regenmodus Zustand beim Ausschalten
 
     int rainAverage() {
       return _rainAverage;

@@ -23,15 +23,11 @@ namespace PrefKeys {
   PrefKey TimeAPout = "ap_tmo";                  // Zeit bis zum abschalter des AP
   PrefKey init_pump_anzahl = "init_pump_cnt";           //
   PrefKey oilingDistance = "distance";            // Wird zur Berechnung der Zurückgelegten entfernung benötigt
-  PrefKey Start_disp_1 = "scr1_tmo";              //
-  PrefKey Start_disp_2 = "scr2_tmo";              //
   PrefKey brightness = "brightness";               //
   PrefKey currentScreen = "currScreen";             //
   PrefKey pump_nach_Regen = "rain_off_cnt";           // Pumpimpulse wenn der Regenmodus abgeschaltet wird
   PrefKey ssid_ap = "ssid";                   // Name des AP
   PrefKey password_ap = "pw";               // Password AP
-  PrefKey Gefahrene_km = "distance_sum";              //
-  PrefKey Gefahrene_km_Ges = "distance_total";          //
   PrefKey timezone = "timezone";                  //
   PrefKey tankinhalt_Aktuell = "tank_cur";        //
   PrefKey pump_pending = "pump_pend";           //
@@ -40,22 +36,23 @@ namespace PrefKeys {
 
 PrefsNamespace prefs = PrefsNamespace("prefs");
 
-boolean stop_write_eeprom = true; //TODO: Replace by references verhindert das Beschreiben des EEPRON Speichers
-
-void disableEepromWriting() {
-    stop_write_eeprom = true;
-}
-
 void read_string(PrefKey key, char *dst, size_t len)
 {
-  prefs.getString(key, dst, len);
+  size_t l = prefs.getString(key, dst, len);
+  if (l == 0) {
+    Serial.print("prefs.getString failed for key: ");
+    Serial.println(key);
+  }
 }
 
 void write_string(PrefKey key, const char *value)
 {
-  if (stop_write_eeprom || key == PrefKeys::Noeeprom)
-    return;
-  prefs.putString(key, value);
+  size_t n = prefs.putString(key, value);
+  if (n == 0) {
+    Serial.print("prefs.putString(): key: ");
+    Serial.print(key);
+    Serial.println(", failed!");
+  }
 }
 
 int read_int(PrefKey key)

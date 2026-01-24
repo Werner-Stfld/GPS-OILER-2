@@ -20,7 +20,7 @@ void ActionScreen::loop(ScreenArgs &args) {
     byte v = map(args.timeToActionInPercent, 0, 100, 0, 158); // map percent to rect length
     uint32_t color = TFT_BLACK;
     if (args.timeToActionInPercent >= 100) {
-        color = TFT_GREEN;
+        color = TFT_RED;
     }
     spr.fillRect(1, 117, v, 10, color);      // Draws the bar depending on the time, the button is pressed value
     spr.pushSprite(0,0);

@@ -32,12 +32,30 @@ class DefaultScreen : public ScreenBase {
     void setup ();
     Timer tankToggleTimeout = Timer(500);
 
+    u_int16_t fgColor = TFT_BLACK;
+    u_int16_t bgColor = TFT_WHITE;
+    u_int16_t bgCompass = TFT_DARKGREY;
+    u_int16_t speedFgColor = TFT_RED;
+    u_int16_t tankWarningColor = TFT_BLUE;
+    u_int16_t tankWarningFgColor = TFT_WHITE;
+    u_int16_t tankBarColor = TFT_RED;
+
     public:
     IntVar &timeZone;
     IntVar &oilsymbol_Zeit;
     void triggerShowOiling();
-    DefaultScreen(TFT_eSprite  &_spr, IntVar &_timeZone, IntVar & _oilsymbol_Zeit):  
+    DefaultScreen(TFT_eSprite  &_spr, IntVar &_timeZone, IntVar & _oilsymbol_Zeit, bool darkMode = false):  
         ScreenBase(_spr),
         timeZone(_timeZone), 
-        oilsymbol_Zeit(_oilsymbol_Zeit)  {}
+        oilsymbol_Zeit(_oilsymbol_Zeit)  {
+            if (darkMode) {
+                fgColor = TFT_DARKGREY;
+                bgColor = TFT_BLACK;
+                bgCompass = TFT_BLACK;
+                speedFgColor = TFT_RED;
+                tankWarningColor = TFT_BLUE;
+                tankWarningFgColor = TFT_WHITE;
+                tankBarColor = TFT_RED;
+            }
+        }
 };

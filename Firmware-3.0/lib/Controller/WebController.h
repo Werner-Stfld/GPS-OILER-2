@@ -5,6 +5,7 @@
 #include <WebServer.h>         // Für WIFI
 #include <LittleFs.h>                 // LittleFS library
 #include <ArduinoJson.h>              // Json Bibliothek
+#include <esp_system.h>
 
 #include "globals.h"
 #include "uservar.h"
@@ -12,58 +13,18 @@
 class JsonEndpoint {
   public: 
   const char *uri;
+  http_method method;
   void (*handle) (JsonDocument &);
-  JsonEndpoint(const char *u, void (*h) (JsonDocument &)): uri(u), handle(h) {}
+  JsonEndpoint(const char *u, http_method m, void (*h) (JsonDocument &)): uri(u), method(m), handle(h) {}
 };
 
 class WebController: public VarContainer {
   const char *defaultSSID = "GPS-OILER";
   const char *defaultPassword = "12345678";
-  // WiFi
-  const byte my_WiFi_Mode = 2;              // WIFI_STA = 1 = Workstation  WIFI_AP = 2  = Accesspoint
   IPAddress local_ip = IPAddress(192, 168, 4, 1); // Die Festgelegte IP Adresse des AP
-  unsigned long TimeAPoutmillis;             // Variable für die Abschaltung des AP
   boolean activ = true;                      // Variable wird zurückgesetzt wenn Timeout für Access Point erreicht.
+  bool filesystemExists = false;
   WebServer *server = new WebServer(80);
-
-  static String getContentType(String filename) {
-    if (filename.endsWith(".htm")) return "text/html";
-    else if (filename.endsWith(".js")) return "application/javascript";
-    else if (filename.endsWith(".html")) return "text/html";
-    else if (filename.endsWith(".css")) return "text/css";
-    else if (filename.endsWith(".ico")) return "image/x-icon";
-    return "text/plain";
-  }
-
-  // web file server prvides the web files contained in the data folder to the browser
-  void ServeFile(String path)
-  {
-    File f = LittleFS.open(path, "r");
-    server->streamFile(f, getContentType(path));
-    f.close();
-  }
-
-  void ServeFile(String path, String contentType)
-  {
-    File f = LittleFS.open(path, "r");
-    server->streamFile(f, contentType);
-    f.close();
-  }
-
-  bool HandleFileRead(String path) 
-  { 
-    if (path.endsWith("/")) path += "index.html";
-    Serial.println("handleFileRead: " + path);
-    
-    if (LittleFS.exists(path)) 
-    {
-      ServeFile(path);
-      return true;
-    }
-
-    Serial.println("file not found: " + path);
-    return false;
-  }
 
   void handleNotFound() {
     const char *notFound = R"=====(
@@ -79,20 +40,16 @@ class WebController: public VarContainer {
     </style>
 </head>
 <body>
-    <h1>404</h1>
-    <p>Oops! The page you are looking for could not be found.</p>
+    <h1>404 - Page Not Found</h1>
+    <p>The page you are looking for could not be found.</p>
+    <p>The file system may be missing on the device.</p>
 </body>
 </html>
 )=====";
-    server->send(404, "text/plain", notFound);
-  }
-
-  void RetriggerAPTimeout() {
-    TimeAPoutmillis = millis() + TimeAPout.get() * 1000 * 60; 
+    server->send(404, "text/html", notFound);
   }
 
   void putHandler (void (*put) (JsonDocument & doc)) {
-    RetriggerAPTimeout();
     String json = server->arg("plain");
     Serial.println(json.c_str());
 
@@ -109,7 +66,6 @@ class WebController: public VarContainer {
   }
 
   void getHandler(void (*get) (JsonDocument & doc)) {
-    RetriggerAPTimeout();
     String json;
     JsonDocument doc;
     get(doc);
@@ -118,9 +74,9 @@ class WebController: public VarContainer {
   }
 
   class HandlerContext {
-    WebController *controller;
     void (*handler) (JsonDocument & doc);
     public:
+    WebController *controller;
     HandlerContext(WebController *ctrl, void (*h) (JsonDocument & doc)): controller(ctrl), handler(h) {}
     void get () {
       controller->getHandler(handler);
@@ -130,29 +86,30 @@ class WebController: public VarContainer {
     }
   };
 
-  void SetupWebServer(JsonEndpoint *getEndpoints, JsonEndpoint *putEndpoints) {
+  void SetupWebServer(JsonEndpoint *endpoints) {
 
-    for (int i = 0; getEndpoints[i].handle != nullptr;i++) {
-      HandlerContext *ctx = new HandlerContext(this, getEndpoints[i].handle);
-      server->on(getEndpoints[i].uri, HTTP_GET, [ctx] () { ctx->get(); });
+    for (int i = 0; endpoints[i].handle != nullptr;i++) {
+      HandlerContext *ctx = new HandlerContext(this, endpoints[i].handle);
+      if (endpoints[i].method == HTTP_GET) {
+        server->on(endpoints[i].uri, endpoints[i].method, [ctx] () { ctx->get(); });
+      }
+      if (endpoints[i].method == HTTP_PUT) {
+        server->on(endpoints[i].uri, endpoints[i].method, [ctx] () { ctx->put(); });
+      }
     }
 
-    for (int i = 0; putEndpoints[i].handle != nullptr;i++) {
-      HandlerContext *ctx = new HandlerContext(this, putEndpoints[i].handle);
-      server->on(putEndpoints[i].uri, HTTP_PUT, [ctx] () { ctx->put(); });
+    if (LittleFS.begin()) {
+      server->serveStatic("/", LittleFS, "/");
+    } else {
+      Serial.println("LittleFS: Unable to start file system.");
     }
-    if (!LittleFS.begin()) {
-      Serial.println("LittleFS konnte nicht gestartet werden");
-    }
-    
+
     server->onNotFound([&]() {
-      if (!HandleFileRead(server->uri()))
-        handleNotFound();
+      handleNotFound();
     });
 
     server->begin();
   }
-
   void StartOwnAccessPoint()
   {
     Serial.println("Starting Access Point");
@@ -160,7 +117,7 @@ class WebController: public VarContainer {
 
     WiFi.softAP(ssid_ap.get(), password_ap.get());
     Serial.println("");
-    Serial.print("Started AP:\t");
+    Serial.print("Started WIFI access point:\t");
     Serial.println(WiFi.softAPSSID());
     Serial.print("IP address:\t");
     Serial.println(WiFi.softAPIP());
@@ -187,44 +144,47 @@ class WebController: public VarContainer {
       v = 1;
     return v;
   }
+  bool isWiFiStarted = false;
+  JsonEndpoint *_endpoints;
 public:
-
-  StringVar ssid_ap = StringVar("SSID", defaultSSID, PrefKeys::ssid_ap);                          // Die SSID
-  StringVar password_ap = StringVar("Password", defaultPassword, PrefKeys::password_ap);          // alternativ :  = "12345678";
-  IntVar TimeAPout = IntVar(String("AP Timeout"), 5, PrefKeys::TimeAPout, checkBoundsTimeAPout);  // Zeit in Minuten bis sich der AP wieder abschaltet
-
-  WebController() {
-    add(&ssid_ap);
-    add(&password_ap);
-    add(&TimeAPout);
+  void startWiFi() {
+    Serial.println("starting wifi");
+    if (activ) {
+      Serial.println("WiFi already started");
+      return;
+    }
+    StartOwnAccessPoint();
+    SetupWebServer(_endpoints);
+    activ = true;
   }
 
-  void setup(JsonEndpoint *getEp, JsonEndpoint *putEp)
+  StringVar ssid_ap = StringVar(defaultSSID, PrefKeys::ssid_ap);
+  StringVar password_ap = StringVar(defaultPassword, PrefKeys::password_ap);
+
+  WebController(JsonEndpoint *ep) {
+    _endpoints = ep;
+    add(&ssid_ap);
+    add(&password_ap);
+  }
+
+  void resetWiFi() {
+    ssid_ap.set(defaultSSID, SetMode::flush);
+    password_ap.set(defaultPassword, SetMode::flush);
+    esp_restart();
+  }
+
+  void setup()
   {
     restore();
-    StartOwnAccessPoint();
-    SetupWebServer(getEp, putEp);
-    RetriggerAPTimeout();
+    activ = false;
   };
 
   void loop()
   {
-    if (activ) // do nothing if activ == false
+    if (activ)
     {
-      if (millis() >= TimeAPoutmillis)
-      {
-        // WiFi.mode(WIFI_OFF);
-        // activ = false;
-      }
       server->handleClient();
     }
-#ifdef false
-    if (digitalRead(WLAN_RESET_PIN) == LOW)
-    {
-      ssid_ap.set(defaultSSID, SetMode::flush);
-      password_ap.set(defaultPassword, SetMode::flush);
-    }
-#endif
   };
 };
 

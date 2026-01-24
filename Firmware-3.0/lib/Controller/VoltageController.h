@@ -8,14 +8,20 @@
 class VoltageController: public VarContainer {
   float voltageAverage;
   public:
-  FloatVar displayScale = FloatVar(String(""), 12.7/2.7/1000, PrefKeys::voltageScale); // Anzeigefaktur für die Batteriespannung
+  FloatVar scale = FloatVar(12.7/2.7/1000, PrefKeys::voltageScale); // Anzeigefaktor für die Batteriespannung
 
-  VoltageController() : voltageAverage(2.4) {
-    add(&displayScale);
+  VoltageController() : voltageAverage(12.0) {
+    add(&scale);
   }
 
   float voltage() {
-    return voltageAverage*displayScale.get();
+    return voltageAverage;
+  }
+
+  // Voltage should be greater 13 V, if motor is running
+  // Used to enable emergency mode, if no gps is available
+  bool assumeMotorOn() {
+    return voltageAverage > 13.0; 
   }
 
   void setup() {
@@ -31,8 +37,9 @@ class VoltageController: public VarContainer {
     if (!secondTick.timedOut())
       return;
     int32_t vccSensor = analogReadMilliVolts(VCC_SENSOR_PIN);
+    float v = scale.get() * vccSensor;
 
-    voltageAverage = vccSensor * 0.15 + voltageAverage * 0.85;
+    voltageAverage = v * 0.15 + voltageAverage * 0.85;
   }
 };
 

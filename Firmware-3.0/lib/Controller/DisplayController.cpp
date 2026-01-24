@@ -36,7 +36,7 @@ void DisplayController::loop(bool pressed)
         int no = currScreen.get();
         no++;
         if (no >= numScreens) no = 0;
-        currScreen.set(no, SetMode::flush);
+        currScreen.set(no, no < 2?SetMode::flush:SetMode::cache); // Persist only default and inverted default screen.
         currentScreen()->setup();
     }
     if (screenAction == NextScreenAction::defaultScreen) {
