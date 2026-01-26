@@ -73,7 +73,7 @@ void IRAM_ATTR  loop() {
 // Benutzerdefinierte Variablen
 // Änderbar über stdin oder über WEB
 // Werte sind in prefs und werden gecached
-IntVar geschwindigkeit_Notbetrieb = IntVar(80,PrefKeys::geschwindigkeit_Notbetrieb); // Geschwindigkeit die angenommen wird wenn kein Sat-Empfang ist (Notbetrieb)
+IntVar geschwindigkeit_Notbetrieb = IntVar(60,PrefKeys::geschwindigkeit_Notbetrieb); // Geschwindigkeit die angenommen wird wenn kein Sat-Empfang ist (Notbetrieb)
 FloatVar geschwindigkeit = FloatVar(0, PrefKeys::Noeeprom);         // Aktuelle Geschwindigkeit
 IntVar initFromPreferences = IntVar(0,PrefKeys::init_from_preferences); // flag zum Rücksetzen der Einstellungen
 
@@ -192,14 +192,14 @@ void loop()
   rainController.loop();
   voltageController.loop();
   float oilingSpeed = 0.0; // oilingSpeed: speed to evaluate distance for oiling
-  if (secondTimer.timedOut())
+  if (secondTimer.retriggered())
   {
     oilingSpeed = getOilingSpeed();
     oilingSpeed = rainController.getSpeed(oilingSpeed); 
     distanceController.update(oilingSpeed);
     pumpController.RequestPulses(distanceController.pulses() + rainController.pulses()); // pass requested pulses to pumpController
 
-    if (minuteTimer.timedOut() || (gpsController.validData() && standStillEdgeDetected(gpsController.speed()))) { 
+    if (minuteTimer.retriggered() || (gpsController.validData() && standStillEdgeDetected(gpsController.speed()))) { 
       // Flush automatically changing values once per minute or when gps is active indicating speed less then 2 km/h
       // remember: all flush() are writing only, if values have been modified 
       tankController.tankinhalt_Aktuell.flush();
@@ -218,13 +218,11 @@ void loop()
 void getDisplay(JsonDocument &doc) {
   doc["brightness"] = displayController.brightness.get();;
   doc["currScreen"] = displayController.currScreen.get();
-  doc["oilSymbol"] = displayController.oilsymbol_Zeit.get();
   doc["timeZone"] = displayController.timeZone.get();
 }
 
 void putDisplay(JsonDocument &doc) {
   displayController.brightness.set(doc["brightness"], SetMode::flush);
-  displayController.oilsymbol_Zeit.set(doc["oilSymbol"], SetMode::flush);
   displayController.timeZone.set(doc["timeZone"], SetMode::flush);
 }
 
@@ -266,10 +264,10 @@ void putWifi(JsonDocument &doc) {
     webController.ssid_ap.set(str, SetMode::flush);
   str=doc["password"];
   webController.password_ap.set(str, SetMode::flush);
-  Serial.print("putWiFi: ssid: ");
-  Serial.print(webController.ssid_ap.get());
-  Serial.print(", pw: ");
-  Serial.println(webController.password_ap.get());
+  // Serial.print("putWiFi: ssid: ");
+  // Serial.print(webController.ssid_ap.get());
+  // Serial.print(", pw: ");
+  // Serial.println(webController.password_ap.get());
 }
 
 void getTank(JsonDocument &doc) {

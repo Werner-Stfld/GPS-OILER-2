@@ -21,13 +21,13 @@ export default {
   `<div> \
     <form @submit.prevent="apply"> \
       <fieldset class="grid-form label-box">\
-        <legend>Notbetrieb</legend>\
-        <labelled-input summary="Notbetrieb Timeout" desc="Zeit in Sekunden die der GPS Empfang aussetzen musss, bevor der Notbetrieb aktiviert wird. Der Wert muss mindestens 10 betragen."/>\
-        <input id="Notbetrieb Timeout" type="number" min="10" v-model="settings.timeout" name="timeout"/>\
-        Sek\
-        <labelled-input summary="Geschwindigkeit" desc="Geschwindigkeit in km/h die beim Notbetrieb angenommen wird. Der Wert muss wenigstens 30 betragen."/>\
-        <input id="Geschwindigkeit" type="number" min="30" v-model="settings.speed" name="speed"/>\
-        Km/h\
+        <legend>Emergency</legend>\
+        <labelled-input summary="Timeout" desc="Time in seconds to enable emergency mode, after GPS speed cannot be determined. Min: 30 sec"/>\
+        <input id="Timeout" type="number" min="30" max="240" v-model="settings.timeout" name="timeout"/>\
+        sec\
+        <labelled-input summary="Speed" desc="Assumed speed while emergency mode is active. 0: -> disabled emergency mode."/>\
+        <input id="Speed" type="number" min="0" max="200" v-model="settings.speed" name="speed"/>\
+        km/h\
       </fieldset>\
     </form>\
   </div>`,

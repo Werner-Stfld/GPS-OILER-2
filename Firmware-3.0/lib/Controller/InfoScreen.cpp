@@ -20,9 +20,8 @@ NextScreenAction InfoScreen::ScreenAction(ButtonState buttonState) {
 }
 
 void InfoScreen::loop(ScreenArgs &args) {
-    if (!displayTimeout.timedOut())
+    if (!displayTimeout.retriggered())
         return;
-
     spr.fillRect(0,0,TFT_HEIGHT, TFT_WIDTH, TFT_WHITE);
     spr.setTextWrap(false);            
     spr.setTextColor(TFT_BLACK); 

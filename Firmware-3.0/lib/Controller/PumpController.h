@@ -63,7 +63,6 @@ class PumpController: public VarContainer {
   void loop(float speed) {
     if (state == pulseIdle) {
       if (spuelen) {
-        Serial.println("spuelen");
         state = pulseOn;
       } else {
         if (pendingPulses.get() > 0 && (speed >= minGeschwindigkeit.get())) { // Don't oil in standstill

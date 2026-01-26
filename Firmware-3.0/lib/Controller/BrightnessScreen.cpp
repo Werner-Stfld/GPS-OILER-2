@@ -12,7 +12,8 @@ void BrightnessScreen::setup() {
     spr.setCursor(1, 24);
     spr.println("Helligkeit");
     updateRequired = true;
-    displayTimeout.nextTimeout(300); // Timeout as long as timeout for next screen
+    displayTimeout.setRetriggerTimeout(300); // Timeout as long as timeout for next screen
+    displayTimeout.retrigger();
 }
 
 NextScreenAction BrightnessScreen::ScreenAction(ButtonState buttonState) {
@@ -26,7 +27,8 @@ NextScreenAction BrightnessScreen::ScreenAction(ButtonState buttonState) {
 void BrightnessScreen::loop(ScreenArgs &args) {
     if (!displayTimeout.timedOut())
         return;
-    displayTimeout.nextTimeout(50); // After first Timeout 50 ms
+    displayTimeout.setRetriggerTimeout(50); // After first Timeout 50 ms
+    displayTimeout.retrigger();
     
     if (args.timeToActionInPercent) {
         int b = _brightness.get();
@@ -39,7 +41,7 @@ void BrightnessScreen::loop(ScreenArgs &args) {
             b = 100;
             sign = -1;
         }
-        _brightness.set(b, SetMode::flush);
+        _brightness.set(b, SetMode::cache);
         execute(b);
     }
     byte v = map( _brightness.get(), 0, 100, 0, 158); // map percent to rect length

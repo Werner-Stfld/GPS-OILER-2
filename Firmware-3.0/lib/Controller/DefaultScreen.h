@@ -42,12 +42,10 @@ class DefaultScreen : public ScreenBase {
 
     public:
     IntVar &timeZone;
-    IntVar &oilsymbol_Zeit;
     void triggerShowOiling();
-    DefaultScreen(TFT_eSprite  &_spr, IntVar &_timeZone, IntVar & _oilsymbol_Zeit, bool darkMode = false):  
+    DefaultScreen(TFT_eSprite  &_spr, IntVar &_timeZone, bool darkMode = false):  
         ScreenBase(_spr),
-        timeZone(_timeZone), 
-        oilsymbol_Zeit(_oilsymbol_Zeit)  {
+        timeZone(_timeZone)  {
             if (darkMode) {
                 fgColor = TFT_DARKGREY;
                 bgColor = TFT_BLACK;

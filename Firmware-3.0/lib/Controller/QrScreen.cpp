@@ -18,7 +18,7 @@ void QrScreen::setup () {
 }
 
 void QrScreen::loop(ScreenArgs &args) {
-    if (!displayTimeout.timedOut()) 
+    if (!displayTimeout.retriggered()) 
         return;
     if (!updateRequired)
         return;

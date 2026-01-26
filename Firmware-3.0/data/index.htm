@@ -29,39 +29,37 @@
     import displayComponent from "./js/DisplayComponent.js"
 
     const {createApp, ref, reactive, provide, watch, onMounted} = Vue;
-    //console.log("foo")
     createApp({
       setup() {
         // declare reactive states
-        const wifi = ref({name: "", password: "", timeout: 10})
+        const wifi = ref({name: "GPS-OILER", password: "12345678"})
         const tank = ref({"content": 100, "capacity": 150})
         const states = ref({
             "oiling": false,
-            "extraOiling": false,
             "emergency": false,
             "raining": true,
             "wifi": true,
-            "washing": false
+            "washing": false,
+            "pumpDistance": 5000
         })
         const rain = ref ({
-          "onThreshold": 150,
-          "offThreshold": 50,
+          "onThreshold": 600,
+          "offThreshold": 800,
           "distanceMultiplier": 1.5,
-          "afterRainOilingPulses": 10
+          "afterRainOilingPulses": 5
         })
         const pump = ref ({
             "pulsesPerMl": 50,
-            "pulseOn": 10,
-            "pulseOff":5
+            "pulseOn": 50,
+            "pulseOff":500
         })
         const emergency = ref ({
-          "timeout": 2,
+          "timeout": 180,
           "speed": 60
         })
         const display = ref ({
-            "screen1": 2000,
-            "screen2": 2000,
-            "oilSymbol": 2000
+          "timeZone": 1, // MEZ
+          "brightness": 100
         })
         const system = ref ({
             "rev": "0.8.15"
@@ -163,31 +161,37 @@
 
    <div id="app">
     <header>
-       <h1>GPS Öler</h1> <!-- add dynamic class binding here -->
+       <h1>GPS Oiler</h1> <!-- add dynamic class binding here -->
     </header>
     <main>
 
       <!-- @submit.prevent="addTodo" verhindert standardbehandlung des browsers. Stattdessen wird addTodo gerufen. -->
       <div class="buttons" >
-        <button @click="save" class="main-button" >Speichern</button>
-        <button @click="update"class="main-button">Aktualisieren</button>
+        <button @click="save" class="main-button" >Apply</button>
+        <button @click="update"class="main-button">Refresh</button>
       </div>
       <div class="settings" >
         <states-component></states-component>
-        <wifi-component></wifi-component>
+        <display-component></display-component>
+        <emergency-component></emergency-component>
+      </div>
+      <div class="buttons">
+        <button @click="save" class="main-button" >Apply</button>
+        <button @click="update"class="main-button">Refresh</button>
+      </div>
+      <div class="settings" >
         <tank-component></tank-component>
         <rain-component></rain-component>
         <pump-component></pump-component>
-        <emergency-component></emergency-component>
-        <display-component></display-component>
+        <wifi-component></wifi-component>
       </div>
       <div class="buttons">
-        <button @click="save" class="main-button" >Speichern</button>
-        <button @click="update"class="main-button">Aktualisieren</button>
+        <button @click="save" class="main-button" >Apply</button>
+        <button @click="update"class="main-button">Refresh</button>
       </div>
     </main>
     <footer>
-      <div>{{ system.rev }}</div>
+      <div>by H&W 2026: {{ system.rev }}</div>
     </footer>
   </div>
 </body>

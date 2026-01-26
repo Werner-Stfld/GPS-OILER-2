@@ -22,16 +22,16 @@ export default {
   `<div> \
     <form @submit.prevent="apply"> \
       <fieldset class="grid-form label-box">\
-        <legend>Pumpe</legend>\
-        <labelled-input summary="Pulse pro ml" desc="Anzahl der Pumppulse um 1 ml zu verbrauchen. Der Wert wird verwendet um den Ölverbrauch zu berechnen."/>\
-        <input id="Pulse pro ml" type="number" min="1" v-model="settings.pulsesPerMl" name="pulsesPerMl"/>\
+        <legend>Pump</legend>\
+        <labelled-input summary="Pulses per ml" desc="Number of pulses consuming 1 ml of oil. The value is used to evaluate the tank contents."/>\
+        <input id="Pulses per ml" type="number" min="10" max="500" v-model="settings.pulsesPerMl" name="pulsesPerMl"/>\
         &nbsp;\
-        <labelled-input summary="Puls-Ein" desc="Zeitdauer eines Pulses."/>\
-        <input id="Puls-Ein" type="number" min="1" v-model="settings.pulseOn" name="pulseOn"/>\
-        M-Sek\
-        <labelled-input summary="Puls-Aus" desc="Mindest-Zeitpause nach einem Puls in (ms)"/>\
-        <input id="Puls-Aus" type="number" min="1.0" v-model="settings.pulseOff" name="pulseOff" />\
-        M-Sek\
+        <labelled-input summary="Puls duration" desc="Duration of a pump puls in milliseconds."/>\
+        <input id="Puls duration" type="number" min="5" max="999" v-model="settings.pulseOn" name="pulseOn"/>\
+        msec\
+        <labelled-input summary="Puls pause" desc="Time between pump pulses in milliseconds."/>\
+        <input id="Puls pause" type="number" min="50" max="999" v-model="settings.pulseOff" name="pulseOff" />\
+        msec\
       </fieldset>\
     </form>\
   </div>`,

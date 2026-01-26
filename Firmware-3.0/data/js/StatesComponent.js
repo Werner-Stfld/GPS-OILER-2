@@ -27,27 +27,21 @@ export default {
   `<div> \
     <form @submit.prevent="apply"> \
       <fieldset class="grid-form label-box">\
-        <legend>Übersicht</legend>
-        <labelled-input summary="Distanz" desc="Kilometer seit Tank Reset."/>\
-        <input id="Distanz" type="number" readonly="true" disabled="true" v-model="settings.distance" name="distance"/>\
-        &nbsp;\
-        <labelled-input summary="Distanz Ölpuls" desc="Abstand zwischen Ölpulsen in Meter."/>\
-        <input id="Distanz Ölpuls" type="number" min="500" v-model="settings.pumpDistance" name="pumpDistance"/>\
-        &nbsp;\
-        <labelled-input summary="Ölen+" desc="Extra Ölen: + 50%"/>\
-        <input id="Ölen+" type="checkbox" v-model="settings.extraOiling" />
-        &nbsp;\
-        <labelled-input summary="Spülen" desc="Spülfunktion: Fördert permanent Öl. !! Nur zu Servicezwecken aktivieren !!"/>\
+        <legend>Overview</legend>
+        <labelled-input summary="Distance" desc="Distance between oil pulses in meter."/>\
+        <input id="Distance" type="number" min="500" max="9999" v-model="settings.pumpDistance" name="pumpDistance"/>\
+        m\
+        <labelled-input summary="Washing" desc="Pumps permanently: !! Use only for service activities. !!"/>\
         <input id="Spülen" type="checkbox" v-model="settings.washing" />\
         &nbsp;\
-        <labelled-input summary="Pumpe aktiv" desc="Die Kette wird gerade geölt"/>\
-        <input id="Pumpe aktiv" type="checkbox" readonly="true" disabled="true" v-model="settings.oiling" id ="oiling" name="oiling" />\
+        <labelled-input summary="Pump active" desc="Pump is currently active. (readonly)"/>\
+        <input id="Pump active" type="checkbox" readonly="true" disabled="true" v-model="settings.oiling" id ="oiling" name="oiling" />\
         &nbsp;\
-        <labelled-input summary="Notbetrieb" desc="Aus der GPS-Funktion kann Geschwindigkeit nicht ermittelt werden."/>\
-        <input id="Notbetrieb" type="checkbox" readonly="true" disabled="true" v-model="settings.emergency" name="emergency"/>\
+        <labelled-input summary="Emergency mode" desc="If GPS fails for a while and battery voltage indicates a running engine, oiling will be continued."/>\
+        <input id="Emergency mode" type="checkbox" readonly="true" disabled="true" v-model="settings.emergency" name="emergency"/>\
         &nbsp;\
-        <labelled-input summary="Regen" desc="Der Regensensor erkennt Regen."/>\
-        <input id="Regen" type="checkbox" readonly="true" disabled="true" v-model="settings.raining" />\
+        <labelled-input summary="Rain" desc="Rain is detected."/>\
+        <input id="Rain" type="checkbox" readonly="true" disabled="true" v-model="settings.raining" />\
         &nbsp;\
       </fieldset>\
     </form>\

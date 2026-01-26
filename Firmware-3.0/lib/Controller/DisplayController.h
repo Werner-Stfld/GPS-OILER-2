@@ -86,8 +86,8 @@ class DisplayController : public VarContainer
 
     WiFiQrScreen wifiQrScreen = WiFiQrScreen(spr);
     WebQrScreen webQrScreen = WebQrScreen(spr);
-    DefaultScreen defaultScreen = DefaultScreen(spr, timeZone, oilsymbol_Zeit);
-    DefaultScreen darkDefaultScreen = DefaultScreen(spr, timeZone, oilsymbol_Zeit, true);
+    DefaultScreen defaultScreen = DefaultScreen(spr, timeZone);
+    DefaultScreen darkDefaultScreen = DefaultScreen(spr, timeZone, true);
     ResetTankScreen resetTankScreen = ResetTankScreen(spr);
     ResetWiFiScreen resetWiFiScreen = ResetWiFiScreen(spr);
     BrightnessScreen brightnessScreen = BrightnessScreen(spr, brightness);
@@ -109,7 +109,6 @@ public:
     void loop(bool pressed);
     IntVar currScreen = IntVar(0, PrefKeys::currentScreen);
     IntVar brightness = IntVar(100, PrefKeys::brightness);
-    IntVar oilsymbol_Zeit = IntVar(3, PrefKeys::oilsymbol_Zeit);
     IntVar timeZone = IntVar(1, PrefKeys::timezone);                 
 
     ScreenBase *currentScreen() {
@@ -124,6 +123,7 @@ public:
     void triggerShowOiling()
     {
         defaultScreen.triggerShowOiling();
+        darkDefaultScreen.triggerShowOiling();
     }
 
     void OnTankReset(void tankReset()) {
@@ -138,9 +138,10 @@ public:
         wifiQrScreen.execute = startWiFi;
     }
 
-    void (*onWiFiOnOff)(bool) = [](bool f)  {
-
-    };
+    static void setBrightness(int percent) {
+        Serial.print("DisplayController::setBrightness: ");
+        Serial.println(percent);
+    }
 };
 
 extern DisplayController displayController;

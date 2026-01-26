@@ -28,15 +28,14 @@ footer {
     min-height: fit-content;
 }
 
-
 header {
-    padding: 0.7em;
-    margin: 0.7em;
+    padding-left: 0.7em;
+    margin: 0.1em;
 }
 
 .grid-form {
     display: grid;
-    grid-template-columns: 1fr 1fr 4em;/* Label + Eingabefeld */
+    grid-template-columns: 2fr 1fr 2em;/* Label + Eingabefeld */
     gap: 0.5em 1em; /* Abstand zwischen Zeilen und Spalten */
 }
 .grid-form input {

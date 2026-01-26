@@ -100,23 +100,18 @@ void DefaultScreen::updateData() {
 }
 
 void DefaultScreen::triggerShowOiling() {
-    timeoutShowOiling.nextTimeout(oilsymbol_Zeit.get()*1000);
-    if (!showOiling) 
-        updateRequired = true;
-    showOiling = true;
+    timeoutShowOiling.setRetriggerTimeout(2000);
+    timeoutShowOiling.retrigger();
 }
 
 void DefaultScreen::loop(ScreenArgs &args) {
 
-    if (timeoutShowOiling.timedOut())
-    {
-        timeoutShowOiling.nextTimeout(0); // stop timer
-        if (showOiling)
-            updateRequired = true;
-        showOiling=false; // remove oilcan
+    if (timeoutShowOiling.isWaiting() != showOiling) {
+        updateRequired = true;
+        showOiling=!showOiling; // toggle
     }
     if (tankPercent < 15) {
-        if (tankToggleTimeout.timedOut()) {
+        if (tankToggleTimeout.retriggered()) {
             warningTankDisplay = !warningTankDisplay;
             updateRequired = true;
         }
@@ -126,9 +121,8 @@ void DefaultScreen::loop(ScreenArgs &args) {
         warningTankDisplay = false;
     }
 
-    if (!displayTimeout.timedOut()) 
+    if (!displayTimeout.retriggered()) 
         return;
-
     updateData();
 
     if (!updateRequired)
@@ -137,7 +131,6 @@ void DefaultScreen::loop(ScreenArgs &args) {
 
     spr.fillRect(0,0,TFT_HEIGHT, TFT_WIDTH, bgColor);
     displaySpeed();
-
     displayDirection();
     displayTime();
     displayAlt();

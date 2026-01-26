@@ -32,14 +32,14 @@ export default {
     <form @submit.prevent=""> \
       <fieldset class="grid-form label-box">\
         <legend>Tank</legend>\
-        <labelled-input summary="Kapazität" desc="Fassungsvermögen (ml)"/>\
-        <input id="Kapazität" type="number" v-model="settings.capacity" min='10' inputmode='dec' name="capacity"/>\
-        ML\
-        <labelled-input summary="Inhalt" desc="Aktueller Inhalt (ml). Berechnet aus Anzahl der Pulse und Pulse pro ml."/>\
-        <input id="Inhalt" type="number" v-model="settings.content" readonly="true" name="content" />\
-        ML\
-        <labelled-input summary="Verbrauch zurücksetzen" desc="Aktueller Inhalt (ml). Aktuellen Inhalt auf Kapazität zurücksetzen."/>\
-        <button @click="reset" id="Verbrauch zurücksetzen" type="button" >Rücksetzen</button>\
+        <labelled-input summary="Capacity" desc="The effective volume of the tank in milliliter."/>\
+        <input id="Capacity" type="number" min='10' max='5000' v-model="settings.capacity" inputmode='dec' name="capacity"/>\
+        ml\
+        <labelled-input summary="Content" desc="The evaluated content of the tank in milliliter. The consumed volume is evaluated by number of pulses and consumption per puls."/>\
+        <input id="Content" type="number" min='10' max='5000' v-model="settings.content" readonly="true" name="content" />\
+        ml\
+        <labelled-input summary="Reset" desc="Reset consumption. The content will be set to the tank capacity. Use after refilling the tank."/>\
+        <button @click="reset" id="Reset" type="button" >Reset</button>\
         &nbsp;\
       </fieldset>\
     </form>\

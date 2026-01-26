@@ -23,8 +23,9 @@ DisplayController::DisplayController() {  // Pins des displays sind in platformi
     // Create ist of variable containers for variable handling
     add(&currScreen);
     add(&brightness);
-    add(&oilsymbol_Zeit);
     add(&timeZone);
+
+    brightnessScreen.execute = setBrightness;
 };
 
 void DisplayController::loop(bool pressed)

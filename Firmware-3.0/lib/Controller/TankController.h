@@ -30,7 +30,7 @@ class TankController: public VarContainer {
 
   void reset() {
     tankinhalt_Aktuell.set(tankinhalt_ml.get(), SetMode::flush);
-    tankinhalt_Aktuell.set(15, SetMode::flush);
+    //tankinhalt_Aktuell.set(15, SetMode::flush);
   }
 };
 

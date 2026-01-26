@@ -34,7 +34,7 @@ class VoltageController: public VarContainer {
 
   Timer secondTick = Timer(300);
   void loop() {
-    if (!secondTick.timedOut())
+    if (!secondTick.retriggered())
       return;
     int32_t vccSensor = analogReadMilliVolts(VCC_SENSOR_PIN);
     float v = scale.get() * vccSensor;

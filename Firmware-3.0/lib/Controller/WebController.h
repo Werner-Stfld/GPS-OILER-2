@@ -70,6 +70,7 @@ class WebController: public VarContainer {
     JsonDocument doc;
     get(doc);
     serializeJson(doc, json);
+    Serial.println(json.c_str());
     server->send(200, "application/json", json);
   }
 

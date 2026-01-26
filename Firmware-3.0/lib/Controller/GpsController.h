@@ -97,7 +97,7 @@ class GpsController: public VarContainer {
       gps.encode(gpsSerial.read());
     }
 
-    if (!updateTimer.timedOut()) {
+    if (!updateTimer.retriggered()) {
       return;
     }
     if (gpsEmulation) {

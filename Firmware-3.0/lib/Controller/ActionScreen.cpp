@@ -15,7 +15,7 @@ void ActionScreen::setup() {
 }
 
 void ActionScreen::loop(ScreenArgs &args) {
-    if (!displayTimeout.timedOut()) 
+    if (!displayTimeout.retriggered()) 
         return;
     byte v = map(args.timeToActionInPercent, 0, 100, 0, 158); // map percent to rect length
     uint32_t color = TFT_BLACK;

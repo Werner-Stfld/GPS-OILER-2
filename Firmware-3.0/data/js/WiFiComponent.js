@@ -18,15 +18,12 @@ export default {
     <form @submit.prevent="apply"> \
       <fieldset class="grid-form label-box">\
         <legend>WiFi</legend>\
-        <labelled-input summary="SSID" desc="Identifier des WiFi-Netzwerks."/>\
-        <input id="SSID" type="text" v-model="settings.name" name="name"/>\
+        <labelled-input summary="SSID" desc="Name of the WiFi network, default GPS-OILER"/>\
+        <input id="SSID" type="text" maxlength="20" v-model="settings.name" name="name"/>\
         &nbsp;\
-        <labelled-input summary="Passwort" desc="Das Passwort zum Absichern des WiFi Zugriffs. Das Passwort sollte mindestens 8 Zeichen lang sein. Ein leeres Passwort erlaubt uneingeschränkten Zugriff."/>\
-        <input id="Passwort" type="text" v-model="settings.password" name="password" />\
+        <labelled-input summary="Password" desc="Password to secure the WiFi access point. The password should be at least 8 chars long. An empty password allows unrestricted access."/>\
+        <input id="Password" type="text" maxlength="20" v-model="settings.password" name="password" />\
         &nbsp;\
-        <labelled-input summary="Timeout" desc="Der Timeout in Minuten legt fest, wann das Protokoll abgeschaltet wird. Die Bedienung der WEB Schnittstelle verlängert den Timeout."/>\
-        <input id="Timeout" type="number" min='1' inputmode='dec' v-model="settings.timeout" name="timeout"/>\
-        Min\
       </fieldset>\
     </form>\
   </div>`,

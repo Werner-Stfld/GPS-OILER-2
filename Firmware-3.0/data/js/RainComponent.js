@@ -21,18 +21,18 @@ export default {
   `<div> \
     <form @submit.prevent="apply"> \
       <fieldset class="grid-form label-box">\
-        <legend>Regen</legend>\
-        <labelled-input summary="Einschaltschwelle" desc="Grenzwert Regen erkannt."/>\
-        <input id="Einschaltschwelle" type="number" min="10" v-model="settings.onThreshold" name="onThreshold"/>\
+        <legend>Rain</legend>\
+        <labelled-input summary="On threshold" desc="Theshhold to detect rain."/>\
+        <input id="On threshold" type="number" min="10" max="9999" v-model="settings.onThreshold" name="onThreshold"/>\
         &nbsp;\
-        <labelled-input summary="Ausschaltschwelle" desc="Grenzwert Regen nicht erkannt."/>\
-        <input id="Ausschaltschwelle" type="number" min="10" v-model="settings.offThreshold" name="offThreshold"/>\
+        <labelled-input summary="Off threshold" desc="Theshhold to detect no rain."/>\
+        <input id="Off threshold" type="number" min="10" max="9999" v-model="settings.offThreshold" name="offThreshold"/>\
         &nbsp;\
-        <labelled-input summary="Distanzfaktor" desc="Regendistanzen werden mit diesem Faktor beim ölen berücksichtigt. Sollte > 1 sein."/>\
-        <input id="Distanzfaktor" type="number" min="1.0" v-model="settings.distanceMultiplier" name="distanceMultiplier" />\
+        <labelled-input summary="Raining distance factor" desc="Distance multiplier while raining. Greater 1: Increase oiling intensity. Lower 1: decreases oiling intensity during rain. Min value is: 0.1"/>\
+        <input id="Raining distance factor" type="number" min="0.1" max="9.9" v-model="settings.distanceMultiplier" name="distanceMultiplier" />\
         &nbsp;\
-        <labelled-input summary="Nachölen" desc="Die Anzahl der Ölpulse um nach dem Regen die Kette zu schmieren."/>\
-        <input id="Nachölen" type="number" min='1' inputmode='dec' v-model="settings.afterRainOilingPulses" name="afterRainOilingPulses"/>\
+        <labelled-input summary="Pulses after rain" desc="Number of pulses after rain to reoil the chain."/>\
+        <input id="Pulses after rain" type="number" min="0"  max="99" inputmode='dec' v-model="settings.afterRainOilingPulses" name="afterRainOilingPulses"/>\
         &nbsp;\
       </fieldset>\
     </form>\

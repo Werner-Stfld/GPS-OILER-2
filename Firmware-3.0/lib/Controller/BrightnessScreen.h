@@ -13,8 +13,6 @@ class BrightnessScreen : public ScreenBase {
 
     NextScreenAction ScreenAction(ButtonState buttonState);
     void (*execute)(int brightnessInPercent) = [](int n) {
-        Serial.print("BrightnessScreen: ");
-        Serial.println(n);
     };
 
     BrightnessScreen(TFT_eSprite  &_spr, IntVar &brightness): ScreenBase(_spr), _brightness(brightness)  {
