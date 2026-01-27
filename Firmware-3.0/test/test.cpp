@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <ArduinoJson.h>
 #include <unity.h>
 #include "icons.h"
 #include "userVar.h"
@@ -29,23 +30,25 @@ void test_float_usage() {
     // rain Multiplier should better be a long value interpreted as percent. => time = measured time *rainMulti /100
 }
 
-IntUserVar TimeAPout = IntUserVar(String("AP Timeout"), 5, eepromAddr::TimeAPout);                   // Zeit in Minuten bis sich der AP wieder abschaltet
-Char20UserVar ssid_ap = Char20UserVar("SSID", "GPS-OILER", eepromAddr::ssid_ap);      // Die SSID
+IntVar TimeAPout = IntVar(5, PrefKeys::TimeAPout);                   // Zeit in Minuten bis sich der AP wieder abschaltet
+StringVar ssid_ap = StringVar("GPS-OILER", PrefKeys::ssid_ap);      // Die SSID
 void test_userVar() {
     int v = TimeAPout.get();
     TEST_ASSERT_EQUAL(5, v);
-    TimeAPout.write(10);
+    TimeAPout.set(10, SetMode::flush);
     TimeAPout.set(8);
-    v = TimeAPout.read();
+    TimeAPout.restore();
+    v = TimeAPout.get();
     TEST_ASSERT_EQUAL(10, v);
 }
 
 void test_ssid_ap() {
     const char *v = ssid_ap.get();
-    ssid_ap.write("GPS-OILER", strlen("GPS-OILER"));
-    ssid_ap.set("foo", strlen("foo"));
+    ssid_ap.set("GPS-OILER", SetMode::flush);
+    ssid_ap.set("foo", SetMode::cache);
 
-    v = ssid_ap.read();
+    ssid_ap.restore();
+    v = ssid_ap.get();
     TEST_ASSERT_EQUAL(9, strlen(v));
     TEST_ASSERT_EQUAL(0, strcmp("GPS-OILER",v));
 }
@@ -69,15 +72,6 @@ void test_unions_encode() {
 }
 
 typedef char char20[20];
-
-#if false
-// function returning array is not allowed
-char20 get(char20 foo) {
-    char20 bar;
-    memcpy(bar, foo, sizeof(char20));
-    return bar;
-}
-#endif
 
 void test_unions_decode() {
     
@@ -105,11 +99,28 @@ void test_char20astype () {
     TEST_ASSERT_EQUAL_MESSAGE((byte)'8', bar[18], "bar[18] != '9'"); 
 }
 
+void AddItems(JsonObject obj) {
+    obj["foo"] = "bar";
+}
+
+void test_json() {
+    String json;
+    JsonDocument doc;
+
+    JsonDocument docExpected;
+    docExpected["a"]["foo"] = "bar";
+    String jsonExpected;
+    serializeJson(docExpected, jsonExpected);
+
+    JsonObject aObj = doc["a"].to<JsonObject>();
+    AddItems(aObj);
+    serializeJson(doc, json);
+    TEST_ASSERT_EQUAL_STRING(json.c_str(), jsonExpected.c_str()); 
+}
+
 void setup() {
     delay(300);
     Serial.begin(115200);
-    delay(200);
-    Wire.begin();
 
     delay(2000); // Wait for serial monitor
     UNITY_BEGIN();
@@ -123,6 +134,7 @@ void setup() {
     RUN_TEST(test_unions_encode);
     RUN_TEST(test_unions_decode);
     RUN_TEST(test_char20astype);
+    RUN_TEST(test_json);
     UNITY_END();
 }
 

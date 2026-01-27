@@ -1,59 +1,3 @@
-#undef test
-#ifdef test
-#include <TFT_eSPI.h>
-#include "ScreenBase.h"
-
-TFT_eSPI tft = TFT_eSPI();
-TFT_eSprite spr = TFT_eSprite(&tft);
-
-extern void *_spi_user;
-
-void setup() {
-  
-  delay(500); // wird auf dem c3 benötigt, wenn CDC eingeschaltet ist.
-  Serial.begin(115200);
-  delay(300);
-  while (!Serial) {
-    delay(10);
-  }
-  //ToDo: Check Wire.begin();
-  Serial.println("setup 01");
-  Serial.println(USER_SETUP_ID);
-
-  Serial.print("MOSI: ");
-  Serial.println(TFT_MOSI);
-  Serial.print("SCLK: ");
-  Serial.println(TFT_SCLK);
-  Serial.print("DC: ");
-  Serial.println(TFT_DC);
-  Serial.print("CS: ");
-  Serial.println(TFT_CS);
-
-  tft.init(INITR_GREENTAB2);
-
-  Serial.println((unsigned long)_spi_user,HEX);
-  tft.setRotation(1);
-  tft.fillScreen(tft.color565(0,255,0));
-  spr.createSprite(TFT_HEIGHT, TFT_WIDTH);  // Vollbild-Sprite
-}
-
-uint8_t i=0;
-void IRAM_ATTR  loop() {
-  delay(100);
-  
-  spr.fillRect(0,0,160,40, tft.color565(i,0,0));
-  spr.fillRect(0,41,160,40,tft.color565(0,i,0));
-  spr.fillRect(0,81,160,40, tft.color565(0,0,i));
-  spr.setTextColor(TFT_GREEN, TFT_BLACK);
-  spr.setTextFont(4);
-  String txt = "FF: ";
-  txt += i++;
-
-  Serial.println(txt.c_str());
-  spr.drawString(txt.c_str(), 1, 10);
-  spr.pushSprite(0, 0);  // In einem Rutsch aufs Display
-}
-#else
 #include <Arduino.h>
 #include <ArduinoJson.h>
 
@@ -312,6 +256,13 @@ void putEmergency(JsonDocument &doc) {
   geschwindigkeit_Notbetrieb.set(doc["speed"], SetMode::flush);
 }
 
+void getBackup(JsonDocument &doc) {
+  JsonDocument emergency;
+  getEmergency(emergency);
+  doc["emergency"] = emergency;
+  
+}
+
 // Refill tank
 void putTankReset(JsonDocument &doc) {
   tankController.reset();
@@ -346,4 +297,3 @@ JsonEndpoint *endpoints() {
   };
   return ep;
 };
-#endif
