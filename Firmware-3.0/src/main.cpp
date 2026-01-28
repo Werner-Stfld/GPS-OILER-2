@@ -278,44 +278,27 @@ void getBackup(JsonObject doc) {
   getWifi(doc["wifi"].to<JsonObject>());
 }
 
+void restoreItem(JsonObject doc, const char *item, void (*f)(JsonObject)) {
+  JsonObject o;
+  o = doc[item].as<JsonObject>();
+  if (o != nullptr) {
+    Serial.print("restore ");
+    Serial.println(item);
+    f(o);
+  } else {
+    Serial.print("restore: no info for ");
+    Serial.println(item);
+  }
+}
 // Restore
 void restore(JsonObject doc) { 
-  JsonObject o;
-  o = doc["display"].as<JsonObject>();
-  if (o != nullptr) {
-    Serial.println("restore display");
-    putDisplay(o);
-  }
-  o = doc["emergency"].as<JsonObject>();
-  if (o != nullptr) {
-    Serial.println("restore emergency");
-    putEmergency(o);
-  }
-  o = doc["pump"].as<JsonObject>();
-  if (o != nullptr) {
-    Serial.println("restore pump");
-    putPump(o);
-  }
-  o = doc["rain"].as<JsonObject>();
-  if (o != nullptr) {
-    Serial.println("restore rain");
-    putRain(o);
-  }
-  o = doc["states"].as<JsonObject>();
-  if (o != nullptr) {
-    Serial.println("restore states");
-    putStates(o);
-  }
-  o = doc["tank"].as<JsonObject>();
-  if (o != nullptr) {
-    Serial.println("restore tank");
-    putTank(o);
-  }
-  o = doc["wifi"].as<JsonObject>();
-  if (o != nullptr) {
-    Serial.println("restore wifi");
-    putWifi(o);
-  }
+  restoreItem(doc, "display", putDisplay);
+  restoreItem(doc, "emergency", putEmergency);
+  restoreItem(doc, "pump", putPump);
+  restoreItem(doc, "rain", putRain);
+  restoreItem(doc, "states", putStates);
+  restoreItem(doc, "tank", putTank);
+  restoreItem(doc, "wifi", putWifi);
 }
 
 JsonEndpoint *endpoints() {
