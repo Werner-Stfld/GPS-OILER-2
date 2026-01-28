@@ -141,13 +141,13 @@
           URL.revokeObjectURL(link.href);
 
         }
-        const restoreFile = document.getElementById("restoreFile");
 
         async function restore() {
+          const restoreFile = document.getElementById("restoreFile");
           restoreFile.click();
         }
 
-        restoreFile.onchange = async () => {
+        async function onRestoreFileChange() {
             const file = restoreFile.files[0];
             if (!file) return; // abort
 
@@ -167,7 +167,7 @@
                     alert("Restore failed");
                 }
             } catch (e) {
-                alert("Invalid json file");
+                alert(e);
             }
             restoreFile.value = ""; // Reset für nächsten Restore
         };
@@ -188,6 +188,7 @@
           save,
           backup,
           restore,
+          onRestoreFileChange,
           Dump
         }
       },
@@ -234,7 +235,7 @@
         <button @click="update" class="main-button">Refresh</button>
         <button @click="backup" class="main-button">Backup</button>
         <button @click="restore" class="main-button">Restore</button>
-        <input class="file-input" type="file" title="restore filename" accept=".json" />
+        <input id="restoreFile" class="file-input" type="file" @change="onRestoreFileChange" title="restore filename" accept=".json" />
       </div>
     </main>
     <footer>
