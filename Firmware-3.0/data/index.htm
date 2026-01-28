@@ -130,6 +130,48 @@
               }
             }
         }
+        async function backup() {
+
+          const response = await fetch("/api/backup")
+          const blob = await response.blob()
+          const link = document.createElement("a");
+          link.href = URL.createObjectURL(blob);
+          link.download = "backup.json";
+          link.click();
+          URL.revokeObjectURL(link.href);
+
+        }
+        const restoreFile = document.getElementById("restoreFile");
+
+        async function restore() {
+          restoreFile.click();
+        }
+
+        restoreFile.onchange = async () => {
+            const file = restoreFile.files[0];
+            if (!file) return; // abort
+
+            try {
+                const text = await file.text();
+                const json = JSON.parse(text);
+
+                const response = await fetch("/api/backup", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(json)
+                });
+
+                if (response.ok) {
+                    alert("Restore succeeded");
+                } else {
+                    alert("Restore failed");
+                }
+            } catch (e) {
+                alert("Invalid json file");
+            }
+            restoreFile.value = ""; // Reset für nächsten Restore
+        };
+
         onMounted(update)
 
         return {
@@ -144,6 +186,8 @@
           system,
           update,
           save,
+          backup,
+          restore,
           Dump
         }
       },
@@ -187,7 +231,10 @@
       </div>
       <div class="buttons">
         <button @click="save" class="main-button" >Apply</button>
-        <button @click="update"class="main-button">Refresh</button>
+        <button @click="update" class="main-button">Refresh</button>
+        <button @click="backup" class="main-button">Backup</button>
+        <button @click="restore" class="main-button">Restore</button>
+        <input class="file-input" type="file" title="restore filename" accept=".json" />
       </div>
     </main>
     <footer>

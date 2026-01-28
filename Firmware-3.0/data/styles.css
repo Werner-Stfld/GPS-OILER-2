@@ -20,6 +20,10 @@ main button {
     font-weight: bold;
 }
 
+.file-input {
+    display:none;
+}
+
 footer {
     display: flex; 
     justify-content: flex-end; 

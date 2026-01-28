@@ -14,8 +14,8 @@ class JsonEndpoint {
   public: 
   const char *uri;
   http_method method;
-  void (*handle) (JsonDocument &);
-  JsonEndpoint(const char *u, http_method m, void (*h) (JsonDocument &)): uri(u), method(m), handle(h) {}
+  void (*handle) (JsonObject );
+  JsonEndpoint(const char *u, http_method m, void (*h) (JsonObject )): uri(u), method(m), handle(h) {}
 };
 
 class WebController: public VarContainer {
@@ -49,7 +49,7 @@ class WebController: public VarContainer {
     server->send(404, "text/html", notFound);
   }
 
-  void putHandler (void (*put) (JsonDocument & doc)) {
+  void putHandler (void (*put) (JsonObject obj)) {
     String json = server->arg("plain");
     Serial.println(json.c_str());
 
@@ -61,29 +61,48 @@ class WebController: public VarContainer {
       server->send(400);
       return;
     }
-    put(doc);
+    put(doc.as<JsonObject>());
     server->send(204);
   }
 
-  void getHandler(void (*get) (JsonDocument & doc)) {
+  void postHandler (void (*post) (JsonObject obj)) {
+    String json = server->arg("plain");
+    Serial.println(json.c_str());
+
+    JsonDocument doc;
+    DeserializationError error = deserializeJson(doc, json);
+    if (error) {
+      Serial.println("Error reading json format: ");
+      Serial.println(error.c_str());
+      server->send(400, "text/plain", "JSON error");
+      return;
+    }
+    post(doc.as<JsonObject>());
+    server->send(200, "text/plain", "OK");
+  }
+
+  void getHandler(void (*get) (JsonObject obj)) {
     String json;
     JsonDocument doc;
-    get(doc);
+    get(doc.to<JsonObject>());
     serializeJson(doc, json);
     Serial.println(json.c_str());
     server->send(200, "application/json", json);
   }
 
   class HandlerContext {
-    void (*handler) (JsonDocument & doc);
+    void (*handler) (JsonObject obj);
     public:
     WebController *controller;
-    HandlerContext(WebController *ctrl, void (*h) (JsonDocument & doc)): controller(ctrl), handler(h) {}
+    HandlerContext(WebController *ctrl, void (*h) (JsonObject obj)): controller(ctrl), handler(h) {}
     void get () {
       controller->getHandler(handler);
     };
     void put () {
       controller->putHandler(handler);
+    }
+    void post () {
+      controller->postHandler(handler);
     }
   };
 
@@ -96,6 +115,9 @@ class WebController: public VarContainer {
       }
       if (endpoints[i].method == HTTP_PUT) {
         server->on(endpoints[i].uri, endpoints[i].method, [ctx] () { ctx->put(); });
+      }
+      if (endpoints[i].method == HTTP_POST) {
+        server->on(endpoints[i].uri, endpoints[i].method, [ctx] () { ctx->post(); });
       }
     }
 

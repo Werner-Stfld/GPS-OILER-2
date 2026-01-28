@@ -159,49 +159,49 @@ void loop()
   prefs.AssertClosed();                                 // Assert that Pref storage is closed
 }
 
-void getDisplay(JsonDocument &doc) {
+void getDisplay(JsonObject doc) {
   doc["brightness"] = displayController.brightness.get();;
   doc["currScreen"] = displayController.currScreen.get();
   doc["timeZone"] = displayController.timeZone.get();
 }
 
-void putDisplay(JsonDocument &doc) {
+void putDisplay(JsonObject doc) {
   displayController.brightness.set(doc["brightness"], SetMode::flush);
   displayController.timeZone.set(doc["timeZone"], SetMode::flush);
 }
 
-void getRain(JsonDocument &doc) {
+void getRain(JsonObject doc) {
   doc["onThreshold"] = rainController.sw_Regensensor_ein.get();;
   doc["offThreshold"] = rainController.sw_Regensensor_aus.get();
   doc["distanceMultiplier"] = rainController.rainMulti.get();
   doc["afterRainOilingPulses"] = rainController.pump_nach_Regen.get();
 }
 
-void putRain(JsonDocument &doc) {
+void putRain(JsonObject doc) {
   rainController.sw_Regensensor_ein.set( doc["onThreshold"], SetMode::flush);
   rainController.sw_Regensensor_aus.set( doc["offThreshold"], SetMode::flush);
   rainController.rainMulti.set( doc["distanceMultiplier"], SetMode::flush);
   rainController.pump_nach_Regen.set( doc["afterRainOilingPulses"], SetMode::flush);
 }
 
-void getPump(JsonDocument &doc) {
+void getPump(JsonObject doc) {
   doc["pulsesPerMl"] = tankController.pumps_ml.get();
   doc["pulseOn"] = pumpController.zeit_pumpe_ein.get();
   doc["pulseOff"] = pumpController.zeit_pumpe_pause.get();
 }
 
-void putPump(JsonDocument &doc) {
+void putPump(JsonObject doc) {
   tankController.pumps_ml.set(doc["pulsesPerMl"], SetMode::flush);
   pumpController.zeit_pumpe_ein.set( doc["pulseOn"] , SetMode::flush);
   pumpController.zeit_pumpe_pause.set(doc["pulseOff"], SetMode::flush);
 }
 
-void getWifi(JsonDocument &doc) {
+void getWifi(JsonObject doc) {
   doc["name"] = webController.ssid_ap.get();
   doc["password"] = webController.password_ap.get();
 }
 
-void putWifi(JsonDocument &doc) {
+void putWifi(JsonObject doc) {
   const char *str=doc["name"];
   int len = strlen(str);
   if (len > 0) 
@@ -214,16 +214,16 @@ void putWifi(JsonDocument &doc) {
   // Serial.println(webController.password_ap.get());
 }
 
-void getTank(JsonDocument &doc) {
+void getTank(JsonObject doc) {
   doc["content"] = tankController.tankinhalt_Aktuell.get();
   doc["capacity"] = tankController.tankinhalt_ml.get();
 }
 
-void putTank(JsonDocument &doc) {
+void putTank(JsonObject doc) {
   tankController.tankinhalt_ml.set(doc["capacity"], SetMode::flush);
 }
 
-void getSystem(JsonDocument &doc) {
+void getSystem(JsonObject doc) {
   String rev = Rev_OILER;
   rev += ": ";
   rev += firmware_Vers;
@@ -231,7 +231,7 @@ void getSystem(JsonDocument &doc) {
   doc["init"] = (bool) initFromPreferences.get();
 }
 
-void getStates(JsonDocument &doc) {
+void getStates(JsonObject doc) {
   doc["oiling"] = pumpController.isOiling();
   doc["extraOiling"] = distanceController.extraOilen;
   doc["raining"] = rainController.isRaining();
@@ -240,42 +240,57 @@ void getStates(JsonDocument &doc) {
   doc["pumpDistance"] = distanceController.pumpDistanz.get();
 }
 
-void putStates(JsonDocument &doc) {
+void putStates(JsonObject doc) {
   distanceController.extraOilen = doc["extraOiling"];
   pumpController.setSpuelen(doc["washing"]);
   distanceController.pumpDistanz.set(doc["pumpDistance"], SetMode::flush);
 }
 
-void getEmergency(JsonDocument &doc) {
+void getEmergency(JsonObject doc) {
   doc["timeout"] = gpsController.zeit_bis_notbetrieb.get();
   doc["speed"] = geschwindigkeit_Notbetrieb.get();
 }
 
-void putEmergency(JsonDocument &doc) {
+void putEmergency(JsonObject doc) {
   gpsController.zeit_bis_notbetrieb.set(doc["timeout"], SetMode::flush);
   geschwindigkeit_Notbetrieb.set(doc["speed"], SetMode::flush);
 }
 
-void getBackup(JsonDocument &doc) {
-  JsonDocument emergency;
-  getEmergency(emergency);
-  doc["emergency"] = emergency;
-  
-}
-
 // Refill tank
-void putTankReset(JsonDocument &doc) {
+void putTankReset(JsonObject doc) {
   tankController.reset();
 }
 
 // Force system defaults during next startup
-void putSystemDefaults(JsonDocument &doc) {
+void putSystemDefaults(JsonObject doc) {
   if (doc["init"].is<JsonVariant>())
     initFromPreferences.set(doc["init"], SetMode::flush); // need 0 value to force reinitialization
 }
 
+void getBackup(JsonObject doc) {
+  getDisplay(doc["display"].to<JsonObject>());
+  getEmergency(doc["emergency"].to<JsonObject>());
+  getPump(doc["pump"].to<JsonObject>());
+  getRain(doc["rain"].to<JsonObject>());
+  getStates(doc["states"].to<JsonObject>());
+  getSystem(doc["system"].to<JsonObject>());
+  getTank(doc["tank"].to<JsonObject>());
+  getWifi(doc["wifi"].to<JsonObject>());
+}
+
+// Restore
+void restore(JsonObject doc) { 
+  putDisplay(doc["display"].to<JsonObject>());
+  putEmergency(doc["emergency"].to<JsonObject>());
+  putPump(doc["pump"].to<JsonObject>());
+  putRain(doc["rain"].to<JsonObject>());
+  putStates(doc["states"].to<JsonObject>());
+  putTank(doc["tank"].to<JsonObject>());
+  putWifi(doc["wifi"].to<JsonObject>());
+}
+
 JsonEndpoint *endpoints() {
-  static JsonEndpoint ep[18] = {
+  static JsonEndpoint ep[20] = {
     JsonEndpoint("/api/system",HTTP_GET, getSystem),
     JsonEndpoint("/api/display",HTTP_GET, getDisplay),
     JsonEndpoint("/api/display",HTTP_PUT, putDisplay),
@@ -293,6 +308,8 @@ JsonEndpoint *endpoints() {
     JsonEndpoint("/api/emergency",HTTP_GET, getEmergency),
     JsonEndpoint("/api/emergency",HTTP_PUT, putEmergency),
     JsonEndpoint("/api/system/defaults",HTTP_PUT, putSystemDefaults),
+    JsonEndpoint("/api/backup",HTTP_GET, getBackup),
+    JsonEndpoint("/api/backup",HTTP_POST, restore),
     JsonEndpoint(nullptr,HTTP_GET, nullptr)
   };
   return ep;
